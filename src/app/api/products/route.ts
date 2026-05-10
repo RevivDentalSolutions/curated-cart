@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 
 export async function POST(req: NextRequest) {
+  if (!isAdminRequest(req)) {
+    return unauthorizedAdminResponse();
+  }
+
   try {
     const body = await req.json();
-    const { name, categoryId, amazonLink, price, source, viralTrendNotes, contentIdea } = body;
+    const { name, categoryId, amazonLink, imageUrl, price, source, viralTrendNotes, contentIdea } = body;
 
     if (!name || !categoryId) {
       return NextResponse.json({ error: 'Name and Category are required' }, { status: 400 });
@@ -15,6 +20,7 @@ export async function POST(req: NextRequest) {
         name,
         categoryId,
         amazonLink,
+        imageUrl,
         price: price ? parseFloat(price) : null,
         source,
         viralTrendNotes,
@@ -24,20 +30,24 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: product });
-  } catch (error: any) {
+  } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unexpected API error' }, { status: 500 });
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdminRequest(req)) {
+    return unauthorizedAdminResponse();
+  }
+
   try {
     const products = await prisma.product.findMany({
       include: { category: true },
       orderBy: { dateAdded: 'desc' },
     });
     return NextResponse.json({ success: true, data: products });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unexpected API error' }, { status: 500 });
   }
 }
