@@ -21,6 +21,7 @@ export default function Header() {
             <Link href="/top-picks" className="nav-link">Top Picks</Link>
             <Link href="/categories" className="nav-link">Categories</Link>
             <Link href="/dashboard" className="nav-link">Tracker</Link>
+            <Link href="/dashboard/scout" className="nav-link">Scout</Link>
           </nav>
 
           <div className="flex items-center space-x-4">
