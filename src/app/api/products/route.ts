@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, categoryId, amazonLink, imageUrl, price, source, viralTrendNotes, contentIdea } = body;
+    const { name, categoryId, amazonLink, affiliateLink, affiliatePlaceholderUrl, imageUrl, amazonAsin, rating, reviewCount, price, source, viralTrendNotes, contentIdea } = body;
 
     if (!name || !categoryId) {
       return NextResponse.json({ error: 'Name and Category are required' }, { status: 400 });
@@ -20,7 +20,12 @@ export async function POST(req: NextRequest) {
         name,
         categoryId,
         amazonLink,
+        affiliateLink,
+        affiliatePlaceholderUrl,
         imageUrl,
+        amazonAsin,
+        rating: rating ? parseFloat(rating) : null,
+        reviewCount: reviewCount ? parseInt(reviewCount, 10) : null,
         price: price ? parseFloat(price) : null,
         source,
         viralTrendNotes,
@@ -30,9 +35,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: product });
-  } catch (error) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to create product';
     console.error('API Error:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unexpected API error' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -47,7 +53,8 @@ export async function GET(req: NextRequest) {
       orderBy: { dateAdded: 'desc' },
     });
     return NextResponse.json({ success: true, data: products });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unexpected API error' }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to load products';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

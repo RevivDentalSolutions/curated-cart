@@ -15,24 +15,30 @@ model Category {
 }
 
 model Product {
-  id                  String         @id @default(cuid())
-  name                String
-  categoryId          String
-  amazonLink          String?
-  affiliateLink       String?
-  imageUrl            String?
-  price               Float?
-  source              String?
-  viralTrendNotes     String?
-  contentIdea         String?
-  blogPostStatus      String         @default("Needs Content")
-  pinStatus           String         @default("Pending")
-  tiktokStatus        String         @default("Pending")
-  commissionPotential String?
-  dateAdded           DateTime       @default(now())
-  contentBundle       ContentBundle?
-  category            Category       @relation(fields: [categoryId], references: [id])
-  blogPosts           BlogPost[]     @relation("ProductBlogPosts")
+  id                      String         @id @default(cuid())
+  name                    String
+  categoryId              String
+  amazonLink              String?
+  affiliateLink           String?
+  affiliatePlaceholderUrl String?
+  imageUrl                String?
+  amazonAsin              String?
+  rating                  Float?
+  reviewCount             Int?
+  price                   Float?
+  source                  String?
+  viralTrendNotes         String?
+  contentIdea             String?
+  blogPostStatus          String         @default("Needs Content")
+  pinStatus               String         @default("Pending")
+  tiktokStatus            String         @default("Pending")
+  commissionPotential     String?
+  dateAdded               DateTime       @default(now())
+  contentBundle           ContentBundle?
+  category                Category       @relation(fields: [categoryId], references: [id])
+  blogPosts               BlogPost[]     @relation("ProductBlogPosts")
+
+  @@index([amazonAsin])
 }
 
 enum ProductLeadStatus {
@@ -42,37 +48,42 @@ enum ProductLeadStatus {
 }
 
 model ProductLead {
-  id                   String            @id @default(cuid())
-  title                String
-  source               String
-  sourceUrl            String?
-  imageUrl             String?
-  trendKeyword         String?
-  suggestedCategory    String?
-  estimatedPrice       Float?
-  reasonItMightSell    String
-  viralityScore        Int               @default(0)
-  status               ProductLeadStatus @default(New)
-  createdAt            DateTime          @default(now())
+  id                      String            @id @default(cuid())
+  title                   String
+  source                  String
+  sourceUrl               String?
+  imageUrl                String?
+  trendKeyword            String?
+  suggestedCategory       String?
+  estimatedPrice          Float?
+  rating                  Float?
+  reviewCount             Int?
+  asin                    String?
+  affiliatePlaceholderUrl String?
+  reasonItMightSell       String
+  viralityScore           Int               @default(0)
+  status                  ProductLeadStatus @default(New)
+  createdAt               DateTime          @default(now())
 
   @@index([status, createdAt])
   @@index([sourceUrl])
+  @@index([asin])
 }
 
 model ScoutAutomationConfig {
-  id                         String   @id @default("default")
-  autoImportEnabled          Boolean  @default(false)
-  autoApproveHighScoringLeads Boolean @default(false)
-  autoGenerateContentBundles Boolean  @default(false)
-  highScoreThreshold         Int      @default(85)
-  rssFeeds                   String[] @default([])
-  amazonMoversUrls           String[] @default([])
-  tiktokKeywords             String[] @default([])
-  pinterestKeywords          String[] @default([])
-  productUrls                String[] @default([])
-  lastRunAt                  DateTime?
-  createdAt                  DateTime @default(now())
-  updatedAt                  DateTime @updatedAt
+  id                          String    @id @default("default")
+  autoImportEnabled           Boolean   @default(false)
+  autoApproveHighScoringLeads Boolean   @default(false)
+  autoGenerateContentBundles  Boolean   @default(false)
+  highScoreThreshold          Int       @default(85)
+  rssFeeds                    String[]  @default([])
+  amazonMoversUrls            String[]  @default([])
+  tiktokKeywords              String[]  @default([])
+  pinterestKeywords           String[]  @default([])
+  productUrls                 String[]  @default([])
+  lastRunAt                   DateTime?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 }
 
 model BlogPost {
