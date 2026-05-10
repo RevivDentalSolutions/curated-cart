@@ -1,3 +1,5 @@
+"use client";
+
 export default function Footer() {
   return (
     <footer className="bg-brand-black text-brand-cream py-16">
@@ -21,16 +23,17 @@ export default function Footer() {
           <div>
             <h4 className="font-sans text-xs font-bold uppercase tracking-[0.2em] mb-6 text-brand-gold">Newsletter</h4>
             <p className="text-sm mb-4 text-brand-beige opacity-80">Get my weekly Amazon finds delivered to your inbox.</p>
-            <div className="flex flex-col space-y-2">
+            <form onSubmit={(e) => { e.preventDefault(); alert('Thank you for joining! The first Cart Drop is on its way.'); }} className="flex flex-col space-y-2">
               <input 
                 type="email" 
+                required
                 placeholder="Email address" 
                 className="bg-white/5 border border-brand-beige/20 text-brand-cream px-4 py-2 w-full focus:outline-none focus:border-brand-gold text-sm"
               />
-              <button className="bg-brand-gold text-brand-black px-4 py-2 font-bold text-xs uppercase tracking-widest hover:bg-brand-beige transition-colors">
+              <button type="submit" className="bg-brand-gold text-brand-black px-4 py-2 font-bold text-xs uppercase tracking-widest hover:bg-brand-beige transition-colors">
                 Join the Cart Drop
               </button>
-            </div>
+            </form>
           </div>
         </div>
         <div className="mt-16 pt-8 border-t border-brand-beige/10 text-center">
