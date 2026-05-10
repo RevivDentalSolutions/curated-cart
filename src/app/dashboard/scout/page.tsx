@@ -15,6 +15,7 @@ import {
   Sparkles,
   XCircle,
 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, Mail, Plus, Radio, ShieldCheck, Sparkles, XCircle } from 'lucide-react';
 
 type ProductLead = {
   id: string;
@@ -104,6 +105,13 @@ export default function ProductScoutPage() {
   const [form, setForm] = useState(emptyLead);
   const [pastedIdeas, setPastedIdeas] = useState('');
   const [runSummary, setRunSummary] = useState<RunSummary | null>(null);
+export default function ProductScoutPage() {
+  const [leads, setLeads] = useState<ProductLead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [actingId, setActingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyLead);
+  const [pastedIdeas, setPastedIdeas] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const newLeadCount = useMemo(() => leads.filter((lead) => lead.status === 'New').length, [leads]);
@@ -129,6 +137,19 @@ export default function ProductScoutPage() {
       else setError(automationData.error || 'Failed to load automation settings');
     } catch {
       setError('Failed to load product scout data');
+  const fetchLeads = async () => {
+    try {
+      setError(null);
+      const response = await fetch('/api/scout');
+      const data = await response.json();
+
+      if (data.success) {
+        setLeads(data.data);
+      } else {
+        setError(data.error || 'Failed to load leads');
+      }
+    } catch {
+      setError('Failed to load product leads');
     } finally {
       setLoading(false);
     }
@@ -137,6 +158,7 @@ export default function ProductScoutPage() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       fetchDashboardData();
+      fetchLeads();
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -386,6 +408,34 @@ export default function ProductScoutPage() {
               <label className="space-y-1"><span className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60">Category guess</span><input value={form.suggestedCategory} onChange={(event) => setForm({ ...form, suggestedCategory: event.target.value })} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" placeholder="Beauty Tools" /></label>
               <label className="space-y-1"><span className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60">Estimated price</span><input value={form.estimatedPrice} onChange={(event) => setForm({ ...form, estimatedPrice: event.target.value })} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" placeholder="29.99" type="number" min="0" step="0.01" /></label>
               <label className="space-y-1 md:col-span-2"><span className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60">Why it might sell</span><textarea value={form.reasonItMightSell} onChange={(event) => setForm({ ...form, reasonItMightSell: event.target.value })} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm min-h-24" placeholder="Optional. Leave blank and the scout will generate a scoring breakdown." /></label>
+              <label className="space-y-1 md:col-span-2">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60">Product idea</span>
+                <input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" placeholder="e.g. Aesthetic travel jewelry organizer" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60">Allowed source</span>
+                <input required value={form.source} onChange={(event) => setForm({ ...form, source: event.target.value })} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" placeholder="Manual, RSS, API, newsletter" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60">Source URL</span>
+                <input value={form.sourceUrl} onChange={(event) => setForm({ ...form, sourceUrl: event.target.value })} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" placeholder="https://..." type="url" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60">Trend keyword</span>
+                <input value={form.trendKeyword} onChange={(event) => setForm({ ...form, trendKeyword: event.target.value })} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" placeholder="viral vanity restock" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60">Category guess</span>
+                <input value={form.suggestedCategory} onChange={(event) => setForm({ ...form, suggestedCategory: event.target.value })} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" placeholder="Beauty Tools" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60">Estimated price</span>
+                <input value={form.estimatedPrice} onChange={(event) => setForm({ ...form, estimatedPrice: event.target.value })} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" placeholder="29.99" type="number" min="0" step="0.01" />
+              </label>
+              <label className="space-y-1 md:col-span-2">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60">Why it might sell</span>
+                <textarea value={form.reasonItMightSell} onChange={(event) => setForm({ ...form, reasonItMightSell: event.target.value })} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm min-h-24" placeholder="Optional. Leave blank and the scout will generate a scoring breakdown." />
+              </label>
             </div>
             <button disabled={saving} className="btn-primary inline-flex items-center gap-2 disabled:opacity-60">
               {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />} Save Lead
@@ -399,6 +449,25 @@ export default function ProductScoutPage() {
             <button onClick={importPastedIdeas} disabled={saving || !pastedIdeas.trim()} className="btn-secondary w-full disabled:opacity-60">Import Trend List</button>
             <div className="bg-brand-cream/60 p-4 rounded-sm text-xs text-brand-black/60 leading-relaxed flex gap-3"><ShieldCheck size={18} className="text-brand-gold shrink-0" /><span>No prohibited scraping: use manual imports, RSS, official APIs, partner exports, public trend feeds, affiliate-safe URLs, or pasted trend lists.</span></div>
             <div className="bg-brand-cream/60 p-4 rounded-sm text-xs text-brand-black/60 leading-relaxed flex gap-3"><Mail size={18} className="text-brand-gold shrink-0" /><span>Weekly admin email summary can plug into this saved lead queue later.</span></div>
+            <div className="flex items-center gap-3">
+              <Radio className="text-brand-gold" size={20} />
+              <h2 className="font-serif text-2xl text-brand-black">Bulk Import</h2>
+            </div>
+            <p className="text-sm text-brand-black/60 leading-relaxed">
+              Paste one idea per line from allowed trend sources such as newsletters, RSS readers, marketplaces with API permission, or your own research notes.
+            </p>
+            <textarea value={pastedIdeas} onChange={(event) => setPastedIdeas(event.target.value)} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm min-h-40" placeholder={"Pink bow makeup bag\nGlass iced coffee tumbler\nCordless mini desk vacuum"} />
+            <button onClick={importPastedIdeas} disabled={saving || !pastedIdeas.trim()} className="btn-secondary w-full disabled:opacity-60">
+              Import Trend List
+            </button>
+            <div className="bg-brand-cream/60 p-4 rounded-sm text-xs text-brand-black/60 leading-relaxed flex gap-3">
+              <ShieldCheck size={18} className="text-brand-gold shrink-0" />
+              <span>No prohibited scraping: use manual imports, RSS, official APIs, partner exports, or pasted trend lists.</span>
+            </div>
+            <div className="bg-brand-cream/60 p-4 rounded-sm text-xs text-brand-black/60 leading-relaxed flex gap-3">
+              <Mail size={18} className="text-brand-gold shrink-0" />
+              <span>Weekly admin email summary can plug into this saved lead queue later.</span>
+            </div>
           </div>
         </div>
 
