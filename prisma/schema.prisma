@@ -35,6 +35,46 @@ model Product {
   blogPosts           BlogPost[]     @relation("ProductBlogPosts")
 }
 
+enum ProductLeadStatus {
+  New
+  Approved
+  Rejected
+}
+
+model ProductLead {
+  id                   String            @id @default(cuid())
+  title                String
+  source               String
+  sourceUrl            String?
+  imageUrl             String?
+  trendKeyword         String?
+  suggestedCategory    String?
+  estimatedPrice       Float?
+  reasonItMightSell    String
+  viralityScore        Int               @default(0)
+  status               ProductLeadStatus @default(New)
+  createdAt            DateTime          @default(now())
+
+  @@index([status, createdAt])
+  @@index([sourceUrl])
+}
+
+model ScoutAutomationConfig {
+  id                         String   @id @default("default")
+  autoImportEnabled          Boolean  @default(false)
+  autoApproveHighScoringLeads Boolean @default(false)
+  autoGenerateContentBundles Boolean  @default(false)
+  highScoreThreshold         Int      @default(85)
+  rssFeeds                   String[] @default([])
+  amazonMoversUrls           String[] @default([])
+  tiktokKeywords             String[] @default([])
+  pinterestKeywords          String[] @default([])
+  productUrls                String[] @default([])
+  lastRunAt                  DateTime?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+}
+
 model BlogPost {
   id              String    @id @default(cuid())
   title           String
