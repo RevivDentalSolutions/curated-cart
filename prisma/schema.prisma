@@ -34,6 +34,28 @@ model Product {
   blogPosts           BlogPost[]     @relation("ProductBlogPosts")
 }
 
+enum ProductLeadStatus {
+  New
+  Approved
+  Rejected
+}
+
+model ProductLead {
+  id                   String            @id @default(cuid())
+  title                String
+  source               String
+  sourceUrl            String?
+  trendKeyword         String?
+  suggestedCategory    String?
+  estimatedPrice       Float?
+  reasonItMightSell    String
+  viralityScore        Int               @default(0)
+  status               ProductLeadStatus @default(New)
+  createdAt            DateTime          @default(now())
+
+  @@index([status, createdAt])
+}
+
 model BlogPost {
   id              String    @id @default(cuid())
   title           String
