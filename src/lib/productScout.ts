@@ -4,6 +4,7 @@ const productLeadInputSchema = z.object({
   title: z.string().trim().min(2),
   source: z.string().trim().min(2).default('Manual import'),
   sourceUrl: z.string().trim().url().optional().or(z.literal('')),
+  imageUrl: z.string().trim().url().optional().or(z.literal('')),
   trendKeyword: z.string().trim().optional().or(z.literal('')),
   suggestedCategory: z.string().trim().optional().or(z.literal('')),
   estimatedPrice: z.coerce.number().positive().optional().or(z.literal('')),
@@ -11,7 +12,7 @@ const productLeadInputSchema = z.object({
 });
 
 export const scoutRequestSchema = z.object({
-  sourceType: z.enum(['manual', 'rss', 'automation']).default('manual'),
+  sourceType: z.enum(['manual', 'rss', 'automation', 'amazon', 'tiktok', 'pinterest', 'url']).default('manual'),
   rssFeedUrl: z.string().trim().url().optional(),
   leads: z.array(productLeadInputSchema).min(1).max(50).optional(),
 }).superRefine((value, context) => {
@@ -98,6 +99,7 @@ export function normalizeLead(input: ProductLeadInput) {
     title: input.title,
     source: input.source,
     sourceUrl: input.sourceUrl || undefined,
+    imageUrl: input.imageUrl || undefined,
     trendKeyword: input.trendKeyword || undefined,
     suggestedCategory: score.suggestedCategory,
     estimatedPrice: typeof input.estimatedPrice === 'number' ? input.estimatedPrice : undefined,
