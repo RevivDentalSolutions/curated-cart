@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { ShoppingCart, ArrowLeft, Star, ThumbsUp, ThumbsDown, CheckCircle } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
+import ProductImage from '@/components/ProductImage';
 
 export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
   await connection();
@@ -17,7 +18,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
     }
   });
 
-  if (!post) {
+  if (!post || !post.isPublished) {
     notFound();
   }
 
@@ -38,7 +39,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
       {/* Hero */}
       <div className="relative h-[60vh] bg-brand-nude/20">
         <img 
-          src={getCategoryImage(post.category.name)} 
+          src={post.featuredImage || getCategoryImage(post.category.name)} 
           alt={post.title} 
           className="w-full h-full object-cover opacity-90"
         />
@@ -78,9 +79,9 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
               {post.products.map((product) => (
                 <div key={product.id} className="my-12 luxury-card p-6 md:p-8 flex flex-col md:flex-row gap-8">
                   <div className="w-full md:w-2/5 aspect-square bg-brand-cream overflow-hidden">
-                    <img 
-                      src={getCategoryImage(product.category.name)} 
-                      alt={product.name} 
+                    <ProductImage
+                      src={product.imageUrl}
+                      alt={product.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -136,7 +137,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
           <div className="bg-brand-blush/20 p-8 my-12 border-l-2 border-brand-gold">
             <h3 className="text-xl font-serif mb-4 text-brand-black text-brand-black">Worth It?</h3>
             <p className="text-sm italic leading-relaxed opacity-80 text-brand-black">
-              "If you're looking for an easy way to elevate your lifestyle without a major splurge, these pieces are 100% worth it. The quality surpassed my expectations."
+              &ldquo;If you&rsquo;re looking for an easy way to elevate your lifestyle without a major splurge, these pieces are 100% worth it. The quality surpassed my expectations.&rdquo;
             </p>
           </div>
         </div>
@@ -148,7 +149,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
           </div>
           <h4 className="font-serif text-xl mb-2 text-brand-black">Curated by Sarah</h4>
           <p className="text-sm text-brand-black/60 max-w-md mb-8">
-            Obsessed with finding luxury-inspired pieces that don't break the bank. Follow my weekly finds for your home and wardrobe.
+            Obsessed with finding luxury-inspired pieces that don&rsquo;t break the bank. Follow my weekly finds for your home and wardrobe.
           </p>
           <button className="btn-primary">Follow My Storefront</button>
         </div>

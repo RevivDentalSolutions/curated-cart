@@ -20,6 +20,7 @@ model Product {
   categoryId          String
   amazonLink          String?
   affiliateLink       String?
+  imageUrl            String?
   price               Float?
   source              String?
   viralTrendNotes     String?
