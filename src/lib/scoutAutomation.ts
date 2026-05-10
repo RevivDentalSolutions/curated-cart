@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { createProductDraftFromLead } from '@/lib/productLeadApproval';
 import { normalizeLead, ProductLeadInput } from '@/lib/productScout';
+import { rainforestProductToLead, searchRainforestProducts } from '@/lib/rainforest';
 
 type ScoutSource = 'RSS' | 'Amazon' | 'TikTok' | 'Pinterest' | 'URL';
 
@@ -103,8 +104,13 @@ async function discoverLeads(config: Pick<AutomationConfigInput, 'rssFeeds' | 'a
   }
 
   leads.push(...config.amazonMoversUrls.map(createAmazonMoversLead));
-  leads.push(...config.tiktokKeywords.map((keyword) => createKeywordLead(keyword, 'TikTok')));
-  leads.push(...config.pinterestKeywords.map((keyword) => createKeywordLead(keyword, 'Pinterest')));
+  for (const keyword of config.tiktokKeywords) {
+    leads.push(...await createKeywordLeads(keyword, 'TikTok'));
+  }
+
+  for (const keyword of config.pinterestKeywords) {
+    leads.push(...await createKeywordLeads(keyword, 'Pinterest'));
+  }
 
   for (const productUrl of config.productUrls) {
     leads.push(await createUrlLead(productUrl));
@@ -118,35 +124,39 @@ async function filterExistingLeads(leads: ReturnType<typeof normalizeLead>[]) {
 
   const seen = new Set<string>();
   const unique = leads.filter((lead) => {
-    const key = lead.sourceUrl ? `url:${lead.sourceUrl}` : `title:${normalizeTitle(lead.title)}`;
+    const key = lead.asin ? `asin:${lead.asin}` : lead.sourceUrl ? `url:${lead.sourceUrl}` : `title:${normalizeTitle(lead.title)}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 
+  const asins = unique.map((lead) => lead.asin).filter((asin): asin is string => Boolean(asin));
   const sourceUrls = unique.map((lead) => lead.sourceUrl).filter((url): url is string => Boolean(url));
   const titles = unique.map((lead) => lead.title);
   const existing = await prisma.productLead.findMany({
     where: {
       OR: [
+        ...(asins.length ? [{ asin: { in: asins } }] : []),
         ...(sourceUrls.length ? [{ sourceUrl: { in: sourceUrls } }] : []),
         { title: { in: titles } },
       ],
     },
-    select: { sourceUrl: true, title: true },
+    select: { asin: true, sourceUrl: true, title: true },
   });
 
   const existingKeys = new Set(
     existing.flatMap((lead) => [
+      lead.asin ? `asin:${lead.asin}` : '',
       lead.sourceUrl ? `url:${lead.sourceUrl}` : '',
       `title:${normalizeTitle(lead.title)}`,
     ]).filter(Boolean)
   );
 
   return unique.filter((lead) => {
+    const asinKey = lead.asin ? `asin:${lead.asin}` : undefined;
     const urlKey = lead.sourceUrl ? `url:${lead.sourceUrl}` : undefined;
     const titleKey = `title:${normalizeTitle(lead.title)}`;
-    return !(urlKey && existingKeys.has(urlKey)) && !existingKeys.has(titleKey);
+    return !(asinKey && existingKeys.has(asinKey)) && !(urlKey && existingKeys.has(urlKey)) && !existingKeys.has(titleKey);
   });
 }
 
@@ -192,14 +202,24 @@ function createAmazonMoversLead(url: string): DiscoveredLead {
   };
 }
 
-function createKeywordLead(keyword: string, source: 'TikTok' | 'Pinterest'): DiscoveredLead {
-  return {
+async function createKeywordLeads(keyword: string, source: 'TikTok' | 'Pinterest'): Promise<DiscoveredLead[]> {
+  const products = await searchRainforestProducts(keyword);
+
+  if (products.length) {
+    return products.map((product) => ({
+      ...rainforestProductToLead(product, keyword),
+      source: `Rainforest API Amazon Search (${source} trend)`,
+      sourceBadge: 'Amazon',
+    }));
+  }
+
+  return [{
     title: normalizeTitle(keyword),
     source: `${source} trend keyword list`,
     trendKeyword: keyword,
     reasonItMightSell: `Imported from a pasted ${source} trend keyword list for compliant review.`,
     sourceBadge: source,
-  };
+  }];
 }
 
 async function createUrlLead(url: string): Promise<DiscoveredLead> {
