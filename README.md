@@ -60,3 +60,5 @@ A self-sufficient Amazon affiliate blog website for Home Decor, Fashion, Skincar
 
 ## Production Database Note
 For Vercel deployment, it is recommended to use a hosted PostgreSQL database (e.g., Supabase, Neon, or Vercel Postgres). Update the `DATABASE_URL` and `datasource` provider in `prisma/schema.prisma` if switching from SQLite.
+
+Commit changes
