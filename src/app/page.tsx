@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { ArrowRight, Star, Heart } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { connection } from 'next/server';
 
 export default async function Home() {
+  await connection();
   const categories = await prisma.category.findMany({
     take: 6,
   });
