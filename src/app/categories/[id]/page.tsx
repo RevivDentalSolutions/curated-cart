@@ -1,8 +1,10 @@
 import { ArrowRight, ShoppingCart, Star } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 
 export default async function CategoryPage({ params }: { params: Promise<{ id: string }> }) {
+  await connection();
   const { id } = await params;
   const category = await prisma.category.findUnique({
     where: { id },

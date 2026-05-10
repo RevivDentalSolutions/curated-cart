@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { ShoppingCart, ArrowLeft, Star, ThumbsUp, ThumbsDown, CheckCircle } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 
 export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
+  await connection();
   const { slug } = await params;
   const post = await prisma.blogPost.findUnique({
     where: { slug },

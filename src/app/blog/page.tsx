@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { connection } from 'next/server';
 
 export default async function BlogPage() {
+  await connection();
   const categories = await prisma.category.findMany();
   const posts = await prisma.blogPost.findMany({
     where: { isPublished: true },
