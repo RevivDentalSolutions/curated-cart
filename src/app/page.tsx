@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { ArrowRight, Star, Heart } from 'lucide-react';
+import { ArrowRight, Heart } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
+import ProductImage from '@/components/ProductImage';
 
 export default async function Home() {
   await connection();
@@ -80,10 +81,10 @@ export default async function Home() {
             {featuredFinds.map((item) => (
               <div key={item.id} className="luxury-card group overflow-hidden">
                 <div className="relative aspect-[4/5] overflow-hidden bg-brand-cream">
-                  <img 
-                    src={getCategoryImage(item.category.name)} 
-                    alt={item.name} 
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
+                  <ProductImage
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
                   />
                   <button className="absolute top-4 right-4 p-2 bg-white/80 rounded-full text-brand-black hover:text-red-500 transition-colors">
                     <Heart size={16} />
@@ -134,7 +135,7 @@ export default async function Home() {
       <section className="container mx-auto px-4">
         <div className="flex items-end justify-between mb-12">
           <div>
-            <span className="text-brand-gold uppercase tracking-[0.2em] text-[10px] font-bold">This Week's Cart Drop</span>
+            <span className="text-brand-gold uppercase tracking-[0.2em] text-[10px] font-bold">This Week&rsquo;s Cart Drop</span>
             <h2 className="text-4xl font-serif mt-2 text-brand-black">Latest Blog Posts</h2>
           </div>
           <Link href="/blog" className="nav-link flex items-center gap-2 group">
@@ -148,7 +149,7 @@ export default async function Home() {
               <Link href={`/blog/${post.slug}`} key={post.id} className="group">
                 <div className="aspect-[16/9] overflow-hidden mb-6 bg-brand-nude">
                   <img 
-                    src={getCategoryImage(post.category.name)} 
+                    src={post.featuredImage || getCategoryImage(post.category.name)} 
                     alt={post.title} 
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
                   />
