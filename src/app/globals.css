@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-blush: #fdf2f0;
+  --color-brand-nude: #f5ebe0;
+  --color-brand-cream: #fcfaf7;
+  --color-brand-beige: #d6ccc2;
+  --color-brand-gold: #c5a059;
+  --color-brand-black: #1a1a1a;
+  
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter", sans-serif;
+}
+
+:root {
+  --background: #fcfaf7; /* brand-cream */
+  --foreground: #1a1a1a; /* brand-black */
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+}
+
+.luxury-card {
+  @apply bg-white border border-brand-blush rounded-sm shadow-sm hover:shadow-md transition-shadow;
+}
+
+.btn-primary {
+  @apply bg-brand-black text-brand-cream px-6 py-2 rounded-sm hover:bg-brand-gold hover:text-brand-black transition-colors uppercase tracking-widest text-xs font-bold;
+}
+
+.btn-outline {
+  @apply border border-brand-black text-brand-black px-6 py-2 rounded-sm hover:bg-brand-blush transition-colors uppercase tracking-widest text-xs font-bold;
+}
+
+.nav-link {
+  @apply text-brand-black hover:text-brand-gold transition-colors text-sm uppercase tracking-wider;
+}

@@ -1,0 +1,51 @@
+
+> the-curated-cart@0.1.0 build
+> next build
+
+▲ Next.js 16.2.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 5.8s
+  Running TypeScript ...
+  Finished TypeScript in 3.7s ...
+  Collecting page data using 1 worker ...
+  Generating static pages using 1 worker (0/15) ...
+  Generating static pages using 1 worker (3/15) 
+  Generating static pages using 1 worker (7/15) 
+prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, COALESCE(`aggr_selection_0_Product`.`_aggr_count_products`, 0) AS `_aggr_count_products` FROM `main`.`Category` LEFT JOIN (SELECT `main`.`Product`.`categoryId`, COUNT(*) AS `_aggr_count_products` FROM `main`.`Product` WHERE 1=1 GROUP BY `main`.`Product`.`categoryId`) AS `aggr_selection_0_Product` ON (`main`.`Category`.`id` = `aggr_selection_0_Product`.`categoryId`) WHERE 1=1 LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name` FROM `main`.`Category` WHERE 1=1 ORDER BY `main`.`Category`.`id` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name` FROM `main`.`Category` WHERE 1=1 LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name` FROM `main`.`Category` WHERE 1=1 LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`categoryId`, `main`.`Product`.`amazonLink`, `main`.`Product`.`affiliateLink`, `main`.`Product`.`price`, `main`.`Product`.`source`, `main`.`Product`.`viralTrendNotes`, `main`.`Product`.`contentIdea`, `main`.`Product`.`blogPostStatus`, `main`.`Product`.`pinStatus`, `main`.`Product`.`tiktokStatus`, `main`.`Product`.`commissionPotential`, `main`.`Product`.`dateAdded` FROM `main`.`Product` WHERE (`main`.`Product`.`blogPostStatus` = ? AND `main`.`Product`.`categoryId` IN (?,?,?,?,?,?,?)) ORDER BY `main`.`Product`.`id` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`categoryId`, `main`.`Product`.`amazonLink`, `main`.`Product`.`affiliateLink`, `main`.`Product`.`price`, `main`.`Product`.`source`, `main`.`Product`.`viralTrendNotes`, `main`.`Product`.`contentIdea`, `main`.`Product`.`blogPostStatus`, `main`.`Product`.`pinStatus`, `main`.`Product`.`tiktokStatus`, `main`.`Product`.`commissionPotential`, `main`.`Product`.`dateAdded` FROM `main`.`Product` WHERE `main`.`Product`.`blogPostStatus` = ? ORDER BY `main`.`Product`.`dateAdded` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`BlogPost`.`id`, `main`.`BlogPost`.`title`, `main`.`BlogPost`.`content`, `main`.`BlogPost`.`slug`, `main`.`BlogPost`.`categoryId`, `main`.`BlogPost`.`metaTitle`, `main`.`BlogPost`.`metaDescription`, `main`.`BlogPost`.`featuredImage`, `main`.`BlogPost`.`isPublished`, `main`.`BlogPost`.`createdAt`, `main`.`BlogPost`.`updatedAt` FROM `main`.`BlogPost` WHERE `main`.`BlogPost`.`isPublished` = ? ORDER BY `main`.`BlogPost`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`BlogPost`.`id`, `main`.`BlogPost`.`title`, `main`.`BlogPost`.`content`, `main`.`BlogPost`.`slug`, `main`.`BlogPost`.`categoryId`, `main`.`BlogPost`.`metaTitle`, `main`.`BlogPost`.`metaDescription`, `main`.`BlogPost`.`featuredImage`, `main`.`BlogPost`.`isPublished`, `main`.`BlogPost`.`createdAt`, `main`.`BlogPost`.`updatedAt` FROM `main`.`BlogPost` WHERE `main`.`BlogPost`.`isPublished` = ? ORDER BY `main`.`BlogPost`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?) LIMIT ? OFFSET ?
+  Generating static pages using 1 worker (11/15) 
+✓ Generating static pages using 1 worker (15/15) in 259ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/automations
+├ ƒ /api/categories-list
+├ ƒ /api/categories/api
+├ ƒ /api/dashboard
+├ ƒ /api/generate-content
+├ ƒ /api/money-page-builder
+├ ƒ /api/products
+├ ○ /blog
+├ ƒ /blog/[slug]
+├ ○ /categories
+├ ƒ /categories/[id]
+├ ○ /dashboard
+└ ○ /top-picks
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  blogPosts BlogPost[]
+  products  Product[]
+}
+
+model Product {
+  id                  String         @id @default(cuid())
+  name                String
+  categoryId          String
+  amazonLink          String?
+  affiliateLink       String?
+  price               Float?
+  source              String?
+  viralTrendNotes     String?
+  contentIdea         String?
+  blogPostStatus      String         @default("Needs Content")
+  pinStatus           String         @default("Pending")
+  tiktokStatus        String         @default("Pending")
+  commissionPotential String?
+  dateAdded           DateTime       @default(now())
+  contentBundle       ContentBundle?
+  category            Category       @relation(fields: [categoryId], references: [id])
+  blogPosts           BlogPost[]     @relation("ProductBlogPosts")
+}
+
+model BlogPost {
+  id              String    @id @default(cuid())
+  title           String
+  content         String?
+  slug            String    @unique
+  categoryId      String
+  metaTitle       String?
+  metaDescription String?
+  featuredImage   String?
+  isPublished     Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  category        Category  @relation(fields: [categoryId], references: [id])
+  products        Product[] @relation("ProductBlogPosts")
+}
+
+model ContentBundle {
+  id                String   @id @default(cuid())
+  productId         String   @unique
+  blogPostTitle     String?
+  blogPostOutline   String?
+  shortDescription  String?
+  pinTitle          String?
+  pinDescription    String?
+  tiktokHook        String?
+  tiktokScript      String?
+  facebookCaption   String?
+  emailBlurb        String?
+  suggestedHashtags String?
+  createdAt         DateTime @default(now())
+  product           Product  @relation(fields: [productId], references: [id])
+}
