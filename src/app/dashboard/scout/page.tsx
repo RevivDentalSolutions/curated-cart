@@ -26,6 +26,10 @@ type ProductLead = {
   trendKeyword?: string | null;
   suggestedCategory?: string | null;
   estimatedPrice?: number | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+  asin?: string | null;
+  affiliatePlaceholderUrl?: string | null;
   reasonItMightSell: string;
   viralityScore: number;
   status: 'New' | 'Approved' | 'Rejected';
@@ -107,11 +111,17 @@ export default function ProductScoutPage() {
   const [runSummary, setRunSummary] = useState<RunSummary | null>(null);
 export default function ProductScoutPage() {
   const [leads, setLeads] = useState<ProductLead[]>([]);
+  const [automationConfig, setAutomationConfig] = useState<AutomationConfig>(defaultAutomationConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingAutomation, setSavingAutomation] = useState(false);
+  const [runningAutomation, setRunningAutomation] = useState(false);
+  const [generatingDrafts, setGeneratingDrafts] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyLead);
   const [pastedIdeas, setPastedIdeas] = useState('');
+  const [runSummary, setRunSummary] = useState<RunSummary | null>(null);
+  const [draftSummary, setDraftSummary] = useState<DraftSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const newLeadCount = useMemo(() => leads.filter((lead) => lead.status === 'New').length, [leads]);
@@ -140,16 +150,20 @@ export default function ProductScoutPage() {
   const fetchLeads = async () => {
     try {
       setError(null);
-      const response = await fetch('/api/scout');
-      const data = await response.json();
+      const [leadResponse, automationResponse] = await Promise.all([
+        fetch('/api/scout'),
+        fetch('/api/scout/automations'),
+      ]);
+      const leadData = await leadResponse.json();
+      const automationData = await automationResponse.json();
 
-      if (data.success) {
-        setLeads(data.data);
-      } else {
-        setError(data.error || 'Failed to load leads');
-      }
+      if (leadData.success) setLeads(leadData.data);
+      else setError(leadData.error || 'Failed to load leads');
+
+      if (automationData.success) setAutomationConfig(automationData.data);
+      else setError(automationData.error || 'Failed to load automation settings');
     } catch {
-      setError('Failed to load product leads');
+      setError('Failed to load product scout data');
     } finally {
       setLoading(false);
     }
@@ -208,6 +222,7 @@ export default function ProductScoutPage() {
   const submitManualLead = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
+    setDraftSummary(null);
     setError(null);
 
     try {
@@ -240,13 +255,14 @@ export default function ProductScoutPage() {
     if (!importedLeads.length) return;
 
     setSaving(true);
+    setDraftSummary(null);
     setError(null);
 
     try {
       const response = await fetch('/api/scout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceType: 'automation', leads: importedLeads }),
+        body: JSON.stringify({ sourceType: 'automation', leads: importedLeads, createProductDrafts }),
       });
       const data = await response.json();
 
@@ -258,6 +274,27 @@ export default function ProductScoutPage() {
       setError(err instanceof Error ? err.message : 'Unable to import ideas');
     } finally {
       setSaving(false);
+    }
+  };
+
+
+  const generateQueuedProductDrafts = async () => {
+    setGeneratingDrafts(true);
+    setDraftSummary(null);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/scout/generate-drafts', { method: 'POST' });
+      const data = await response.json();
+
+      if (!data.success) throw new Error(data.error || 'Unable to generate product drafts');
+
+      setDraftSummary(data.data);
+      await fetchDashboardData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to generate product drafts');
+    } finally {
+      setGeneratingDrafts(false);
     }
   };
 
@@ -457,17 +494,16 @@ export default function ProductScoutPage() {
               Paste one idea per line from allowed trend sources such as newsletters, RSS readers, marketplaces with API permission, or your own research notes.
             </p>
             <textarea value={pastedIdeas} onChange={(event) => setPastedIdeas(event.target.value)} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm min-h-40" placeholder={"Pink bow makeup bag\nGlass iced coffee tumbler\nCordless mini desk vacuum"} />
-            <button onClick={importPastedIdeas} disabled={saving || !pastedIdeas.trim()} className="btn-secondary w-full disabled:opacity-60">
-              Import Trend List
-            </button>
-            <div className="bg-brand-cream/60 p-4 rounded-sm text-xs text-brand-black/60 leading-relaxed flex gap-3">
-              <ShieldCheck size={18} className="text-brand-gold shrink-0" />
-              <span>No prohibited scraping: use manual imports, RSS, official APIs, partner exports, or pasted trend lists.</span>
+            <div className="grid grid-cols-1 gap-3">
+              <button onClick={() => importPastedIdeas(false)} disabled={saving || !pastedIdeas.trim()} className="btn-secondary w-full disabled:opacity-60">
+                {saving ? 'Searching Rainforest...' : 'Import Trend List'}
+              </button>
+              <button onClick={() => importPastedIdeas(true)} disabled={saving || !pastedIdeas.trim()} className="btn-primary w-full inline-flex items-center justify-center gap-2 disabled:opacity-60">
+                {saving ? <Loader2 className="animate-spin" size={16} /> : <WandSparkles size={16} />} Generate Product Drafts
+              </button>
             </div>
-            <div className="bg-brand-cream/60 p-4 rounded-sm text-xs text-brand-black/60 leading-relaxed flex gap-3">
-              <Mail size={18} className="text-brand-gold shrink-0" />
-              <span>Weekly admin email summary can plug into this saved lead queue later.</span>
-            </div>
+            <div className="bg-brand-cream/60 p-4 rounded-sm text-xs text-brand-black/60 leading-relaxed flex gap-3"><ShieldCheck size={18} className="text-brand-gold shrink-0" /><span>No prohibited scraping: trend keywords use Rainforest API only, and Amazon product URLs are stored from API results for draft review.</span></div>
+            <div className="bg-brand-cream/60 p-4 rounded-sm text-xs text-brand-black/60 leading-relaxed flex gap-3"><Mail size={18} className="text-brand-gold shrink-0" /><span>Weekly admin email summary can plug into this saved lead queue later.</span></div>
           </div>
         </div>
 

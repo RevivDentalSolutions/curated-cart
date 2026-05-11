@@ -15,23 +15,32 @@ model Category {
 }
 
 model Product {
-  id                  String         @id @default(cuid())
-  name                String
-  categoryId          String
-  amazonLink          String?
-  affiliateLink       String?
-  price               Float?
-  source              String?
-  viralTrendNotes     String?
-  contentIdea         String?
-  blogPostStatus      String         @default("Needs Content")
-  pinStatus           String         @default("Pending")
-  tiktokStatus        String         @default("Pending")
-  commissionPotential String?
-  dateAdded           DateTime       @default(now())
-  contentBundle       ContentBundle?
-  category            Category       @relation(fields: [categoryId], references: [id])
-  blogPosts           BlogPost[]     @relation("ProductBlogPosts")
+  id                      String         @id @default(cuid())
+  name                    String
+  categoryId              String
+  amazonLink              String?
+  affiliateLink           String?
+  affiliatePlaceholderUrl String?
+  imageUrl                String?
+  amazonAsin              String?
+  rating                  Float?
+  reviewCount             Int?
+  price                   Float?
+  source                  String?
+  viralTrendNotes         String?
+  contentIdea             String?
+  blogPostStatus          String         @default("Needs Content")
+  published               Boolean        @default(true)
+  pinStatus               String         @default("Pending")
+  tiktokStatus            String         @default("Pending")
+  commissionPotential     String?
+  dateAdded               DateTime       @default(now())
+  contentBundle           ContentBundle?
+  category                Category       @relation(fields: [categoryId], references: [id])
+  blogPosts               BlogPost[]     @relation("ProductBlogPosts")
+
+  @@index([amazonAsin])
+  @@index([published, dateAdded])
 }
 
 enum ProductLeadStatus {
@@ -78,6 +87,7 @@ model BlogPost {
   id              String    @id @default(cuid())
   title           String
   content         String?
+  excerpt         String?
   slug            String    @unique
   categoryId      String
   metaTitle       String?

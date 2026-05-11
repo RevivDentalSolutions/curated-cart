@@ -53,7 +53,7 @@ export default async function BlogPage() {
             <Link href={`/blog/${post.slug}`} key={post.id} className="group">
               <div className="aspect-[4/3] overflow-hidden mb-6 bg-brand-nude">
                 <img 
-                  src={getCategoryImage(post.category.name)} 
+                  src={post.featuredImage || getCategoryImage(post.category.name)} 
                   alt={post.title} 
                   className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
                 />
@@ -70,7 +70,7 @@ export default async function BlogPage() {
                 {post.title}
               </h2>
               <p className="text-sm text-brand-black/60 line-clamp-2 leading-relaxed mb-6">
-                {post.metaDescription}
+                {post.excerpt || post.metaDescription}
               </p>
               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 group-hover:gap-4 transition-all text-brand-black">
                 Read the Review <ArrowRight size={12} />
