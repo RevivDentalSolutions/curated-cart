@@ -66,7 +66,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
       <div className="container mx-auto px-4 max-w-3xl pt-12">
         <div className="prose prose-brand max-w-none text-brand-black/80">
           <div className="text-lg leading-relaxed font-light italic mb-12 border-l-4 border-brand-blush pl-8">
-            {post.metaDescription}
+            {post.excerpt || post.metaDescription}
           </div>
 
           <div className="whitespace-pre-wrap leading-relaxed mb-12">

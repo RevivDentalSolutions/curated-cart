@@ -30,6 +30,7 @@ model Product {
   viralTrendNotes         String?
   contentIdea             String?
   blogPostStatus          String         @default("Needs Content")
+  published               Boolean        @default(true)
   pinStatus               String         @default("Pending")
   tiktokStatus            String         @default("Pending")
   commissionPotential     String?
@@ -39,6 +40,7 @@ model Product {
   blogPosts               BlogPost[]     @relation("ProductBlogPosts")
 
   @@index([amazonAsin])
+  @@index([published, dateAdded])
 }
 
 enum ProductLeadStatus {
@@ -90,6 +92,7 @@ model BlogPost {
   id              String    @id @default(cuid())
   title           String
   content         String?
+  excerpt         String?
   slug            String    @unique
   categoryId      String
   metaTitle       String?

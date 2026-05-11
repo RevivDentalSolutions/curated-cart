@@ -15,6 +15,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeProduct, setActiveProduct] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [creatingBlogPostId, setCreatingBlogPostId] = useState<string | null>(null);
+  const [updatingBlogPostId, setUpdatingBlogPostId] = useState<string | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -23,6 +25,7 @@ export default function Dashboard() {
     imageUrl: '',
     price: '',
     source: '',
+    published: true,
   });
 
   const fetchData = async () => {
@@ -65,13 +68,78 @@ export default function Dashboard() {
       const data = await res.json();
       if (data.success) {
         setShowAddModal(false);
-        setNewProduct({ name: '', categoryId: '', amazonLink: '', imageUrl: '', price: '', source: '' });
+        setNewProduct({ name: '', categoryId: '', amazonLink: '', imageUrl: '', price: '', source: '', published: true });
         fetchData();
       } else {
         alert(data.error);
       }
     } catch {
       alert('Failed to add product');
+    }
+  };
+
+  const handlePublishToggle = async (product: any) => {
+    try {
+      const res = await fetch('/api/products', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: product.id, published: !product.published }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchData();
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert('Failed to update publish status');
+    }
+  };
+
+  const handleCreateBlogPost = async (product: any) => {
+    setCreatingBlogPostId(product.id);
+    try {
+      const res = await fetch(`/api/products/${product.id}/blog-post`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: true }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchData();
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert('Failed to create blog post');
+    } finally {
+      setCreatingBlogPostId(null);
+    }
+  };
+
+  const handleBlogPostPublishToggle = async (product: any) => {
+    const post = product.blogPosts?.[0];
+    if (!post) {
+      return;
+    }
+
+    setUpdatingBlogPostId(post.id);
+    try {
+      const res = await fetch(`/api/products/${product.id}/blog-post`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId: post.id, isPublished: !post.isPublished }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchData();
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert('Failed to update blog post');
+    } finally {
+      setUpdatingBlogPostId(null);
     }
   };
 
@@ -175,6 +243,15 @@ export default function Dashboard() {
                     />
                   </div>
                 </div>
+                <label className="flex items-center gap-3 rounded-sm border border-brand-blush bg-brand-cream/30 p-3 text-xs font-bold uppercase tracking-widest text-brand-black/70">
+                  <input
+                    type="checkbox"
+                    checked={newProduct.published}
+                    onChange={(e) => setNewProduct({...newProduct, published: e.target.checked})}
+                    className="h-4 w-4 accent-brand-gold"
+                  />
+                  Publish immediately
+                </label>
                 <div className="flex gap-4 pt-4">
                   <button 
                     type="button" 
@@ -233,7 +310,8 @@ export default function Dashboard() {
                     <tr className="bg-brand-cream/50 text-[10px] uppercase tracking-widest font-bold text-brand-black/40 border-b border-brand-blush">
                       <th className="px-6 py-4">Product</th>
                       <th className="px-6 py-4">Category</th>
-                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Content Status</th>
+                      <th className="px-6 py-4">Public</th>
                       <th className="px-6 py-4">Date Added</th>
                       <th className="px-6 py-4"></th>
                     </tr>
@@ -248,20 +326,47 @@ export default function Dashboard() {
                             {p.blogPostStatus}
                           </span>
                         </td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => handlePublishToggle(p)}
+                            className={`text-[10px] uppercase tracking-tighter px-2 py-1 rounded-full font-bold ${p.published ? 'bg-blue-100 text-blue-700' : 'bg-brand-cream text-brand-black/50'}`}
+                          >
+                            {p.published ? 'Published' : 'Draft'}
+                          </button>
+                        </td>
                         <td className="px-6 py-4 text-xs opacity-60 text-brand-black">{new Date(p.dateAdded).toLocaleDateString()}</td>
                         <td className="px-6 py-4 text-right">
-                          <button 
-                            onClick={() => setActiveProduct(p)}
-                            className="text-brand-gold hover:text-brand-black transition-colors"
-                          >
-                            <FileText size={16} />
-                          </button>
+                          <div className="flex flex-col items-end gap-2">
+                            <button
+                              onClick={() => handleCreateBlogPost(p)}
+                              disabled={creatingBlogPostId === p.id}
+                              className="btn-outline py-2 px-3 text-[9px] disabled:opacity-50"
+                            >
+                              {creatingBlogPostId === p.id ? 'Creating...' : p.blogPosts?.[0] ? 'Refresh Blog Post' : 'Create Blog Post'}
+                            </button>
+                            {p.blogPosts?.[0] && (
+                              <button
+                                onClick={() => handleBlogPostPublishToggle(p)}
+                                disabled={updatingBlogPostId === p.blogPosts[0].id}
+                                className="btn-outline py-2 px-3 text-[9px] disabled:opacity-50"
+                              >
+                                {p.blogPosts[0].isPublished ? 'Unpublish Post' : 'Publish Post'}
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => setActiveProduct(p)}
+                              className="text-brand-gold hover:text-brand-black transition-colors"
+                              title="Open content assistant"
+                            >
+                              <FileText size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                     {dashboardData?.lists.readyToPromote.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-sm text-brand-black/40 italic">
+                        <td colSpan={6} className="px-6 py-12 text-center text-sm text-brand-black/40 italic">
                           No products ready to promote yet.
                         </td>
                       </tr>
@@ -284,16 +389,40 @@ export default function Dashboard() {
                       <div>
                         <h4 className="text-sm font-bold">{p.name}</h4>
                         <p className="text-[10px] uppercase tracking-widest text-brand-black/40 font-bold mt-1">
-                          {p.category?.name} • {p.source || 'Viral Find'}
+                          {p.category?.name} • {p.source || 'Viral Find'} • {p.published ? 'Published' : 'Draft'}
                         </p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => setActiveProduct(p)}
-                      className="btn-outline py-2 px-4 text-[10px]"
-                    >
-                      Generate Content
-                    </button>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                      <button
+                        onClick={() => handlePublishToggle(p)}
+                        className="btn-outline py-2 px-4 text-[10px]"
+                      >
+                        {p.published ? 'Unpublish' : 'Publish Product'}
+                      </button>
+                      <button
+                        onClick={() => handleCreateBlogPost(p)}
+                        disabled={creatingBlogPostId === p.id}
+                        className="btn-outline py-2 px-4 text-[10px] disabled:opacity-50"
+                      >
+                        {creatingBlogPostId === p.id ? 'Creating...' : p.blogPosts?.[0] ? 'Refresh Blog Post' : 'Create Blog Post'}
+                      </button>
+                      {p.blogPosts?.[0] && (
+                        <button
+                          onClick={() => handleBlogPostPublishToggle(p)}
+                          disabled={updatingBlogPostId === p.blogPosts[0].id}
+                          className="btn-outline py-2 px-4 text-[10px] disabled:opacity-50"
+                        >
+                          {p.blogPosts[0].isPublished ? 'Unpublish Post' : 'Publish Post'}
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => setActiveProduct(p)}
+                        className="btn-outline py-2 px-4 text-[10px]"
+                      >
+                        Generate Content
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {dashboardData?.lists.needsContent.length === 0 && (
