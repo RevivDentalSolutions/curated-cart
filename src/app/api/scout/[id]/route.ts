@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { ProductLeadStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
@@ -6,6 +7,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isAdminRequest(req)) return unauthorizedAdminResponse();
+
   try {
     const { id } = await params;
     const body = await req.json();

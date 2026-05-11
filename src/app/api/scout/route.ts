@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { createProductDraftFromLead } from '@/lib/productLeadApproval';
 import { normalizeLead, ProductLeadInput, scoutRequestSchema } from '@/lib/productScout';
 import { rainforestProductToLead, searchRainforestProducts } from '@/lib/rainforest';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdminRequest(req)) return unauthorizedAdminResponse();
   try {
     const leads = await prisma.productLead.findMany({
       orderBy: [{ status: 'asc' }, { viralityScore: 'desc' }, { createdAt: 'desc' }],
@@ -19,6 +21,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAdminRequest(req)) return unauthorizedAdminResponse();
   try {
     const body = await req.json();
     const parsed = scoutRequestSchema.safeParse(body);
