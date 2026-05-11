@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ShoppingCart, Search, Menu } from 'lucide-react';
+import { Search, Menu } from 'lucide-react';
 
 export default function Header() {
   return (
@@ -20,17 +20,12 @@ export default function Header() {
             <Link href="/blog" className="nav-link">Blog</Link>
             <Link href="/top-picks" className="nav-link">Top Picks</Link>
             <Link href="/categories" className="nav-link">Categories</Link>
-            <Link href="/dashboard" className="nav-link">Tracker</Link>
-            <Link href="/dashboard/scout" className="nav-link">Scout</Link>
           </nav>
 
           <div className="flex items-center space-x-4">
             <button className="text-brand-black hover:text-brand-gold transition-colors">
               <Search size={20} />
             </button>
-            <Link href="/dashboard" className="text-brand-black hover:text-brand-gold transition-colors">
-              <ShoppingCart size={20} />
-            </Link>
           </div>
         </div>
       </div>

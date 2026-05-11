@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 
 export async function POST(req: NextRequest) {
+  if (!isAdminRequest(req)) {
+    return unauthorizedAdminResponse();
+  }
+
   try {
     const { title, productIds, categoryId } = await req.json();
 
@@ -30,8 +35,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: blogPost });
-  } catch (error: any) {
+  } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unexpected API error' }, { status: 500 });
   }
 }

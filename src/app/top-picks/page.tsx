@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Star } from 'lucide-react';
+import { ArrowRight, Star } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
+import ProductImage from '@/components/ProductImage';
 
 export default async function TopPicks() {
   await connection();
@@ -15,18 +16,6 @@ export default async function TopPicks() {
       }
     }
   });
-
-  const getCategoryImage = (name: string) => {
-    const images: {[key: string]: string} = {
-      'Home Decor': 'https://images.unsplash.com/photo-1616489953149-75517454e9c3?auto=format&fit=crop&q=80&w=400',
-      'Fashion Finds': 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&q=80&w=400',
-      'Skincare': 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=400',
-      'Beauty Tools': 'https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?auto=format&fit=crop&q=80&w=400',
-      'Mom Life Favorites': 'https://images.unsplash.com/photo-1484981138541-3d074aa97716?auto=format&fit=crop&q=80&w=400',
-      'Under $25 Finds': 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&q=80&w=400',
-    };
-    return images[name] || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=400';
-  };
 
   const sections = categories.filter(cat => cat.products.length > 0);
 
@@ -53,7 +42,7 @@ export default async function TopPicks() {
                 {section.products.map((item) => (
                   <div key={item.id} className="luxury-card group">
                     <div className="relative aspect-square overflow-hidden bg-brand-cream">
-                      <img src={getCategoryImage(section.name)} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <ProductImage src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       <div className="absolute top-4 left-4">
                         <div className="flex bg-white/90 backdrop-blur-sm px-2 py-1 rounded-sm text-brand-gold">
                           {[1, 2, 3, 4, 5].map((s) => <Star key={s} size={10} fill="currentColor" />)}
@@ -90,7 +79,7 @@ export default async function TopPicks() {
       )}
 
       <div className="mt-32 bg-brand-blush/30 p-12 text-center rounded-sm max-w-4xl mx-auto border border-brand-blush shadow-inner">
-        <h3 className="text-3xl font-serif mb-6 text-brand-black">Didn't find what you were looking for?</h3>
+        <h3 className="text-3xl font-serif mb-6 text-brand-black">Didn&rsquo;t find what you were looking for?</h3>
         <p className="text-sm opacity-70 mb-8 leading-relaxed max-w-md mx-auto text-brand-black">
           Explore our full category library for more curated finds in home, fashion, beauty, and more.
         </p>

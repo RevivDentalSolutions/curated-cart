@@ -53,7 +53,7 @@ export default async function BlogPage() {
             <Link href={`/blog/${post.slug}`} key={post.id} className="group">
               <div className="aspect-[4/3] overflow-hidden mb-6 bg-brand-nude">
                 <img 
-                  src={getCategoryImage(post.category.name)} 
+                  src={post.featuredImage || getCategoryImage(post.category.name)} 
                   alt={post.title} 
                   className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
                 />

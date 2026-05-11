@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 
 export async function POST(req: NextRequest) {
+  if (!isAdminRequest(req)) {
+    return unauthorizedAdminResponse();
+  }
+
   try {
     const body = await req.json();
     const { name, categoryId, amazonLink, affiliateLink, affiliatePlaceholderUrl, imageUrl, amazonAsin, rating, reviewCount, price, source, viralTrendNotes, contentIdea } = body;
@@ -37,7 +42,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdminRequest(req)) {
+    return unauthorizedAdminResponse();
+  }
+
   try {
     const products = await prisma.product.findMany({
       include: { category: true },
