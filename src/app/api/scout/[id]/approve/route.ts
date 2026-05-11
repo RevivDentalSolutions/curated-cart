@@ -1,52 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { createProductDraftFromLead } from '@/lib/productLeadApproval';
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isAdminRequest(request)) {
+    return unauthorizedAdminResponse();
+  }
+
   try {
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
     const result = await createProductDraftFromLead(id, Boolean(body.generateContentBundle));
-
-    const result = await prisma.$transaction(async (tx) => {
-      const lead = await tx.productLead.findUnique({ where: { id } });
-
-      if (!lead) {
-        throw new Error('Product lead not found');
-      }
-
-      const categoryName = lead.suggestedCategory || 'Worth the Splurge';
-      const category = await tx.category.upsert({
-        where: { name: categoryName },
-        update: {},
-        create: { name: categoryName },
-      });
-
-      const isAmazonUrl = lead.sourceUrl?.includes('amazon.') || lead.sourceUrl?.includes('amzn.to');
-      const product = await tx.product.create({
-        data: {
-          name: lead.title,
-          categoryId: category.id,
-          amazonLink: isAmazonUrl ? lead.sourceUrl : null,
-          affiliateLink: !isAmazonUrl ? lead.sourceUrl : null,
-          price: lead.estimatedPrice,
-          source: lead.source,
-          viralTrendNotes: `${lead.trendKeyword ? `Trend keyword: ${lead.trendKeyword}. ` : ''}${lead.reasonItMightSell}`,
-          contentIdea: `Draft created from Product Scout with virality score ${lead.viralityScore}/100. Review sourcing, affiliate link, images, and compliance before publishing.`,
-          blogPostStatus: 'Needs Content',
-        },
-        include: { category: true },
-      });
-
-      const updatedLead = await tx.productLead.update({
-        where: { id: lead.id },
-        data: { status: 'Approved' },
-      });
-
-      return { product, lead: updatedLead };
-    });
 
     return NextResponse.json({ success: true, data: result });
   } catch (error: unknown) {

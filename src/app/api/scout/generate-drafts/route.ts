@@ -1,8 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createProductDraftFromLead } from '@/lib/productLeadApproval';
+import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  if (!isAdminRequest(req)) return unauthorizedAdminResponse();
+
   try {
     const leads = await prisma.productLead.findMany({
       where: {

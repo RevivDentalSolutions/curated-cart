@@ -2,12 +2,14 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { 
   Plus, Search, TrendingUp, FileText, 
   DollarSign, Calendar, CheckSquare,
   Clock, AlertCircle, Loader2
 } from 'lucide-react';
 import AIAssistant from '@/components/AIAssistant';
+import CreatePinsButton from '@/components/CreatePinsButton';
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -166,12 +168,17 @@ export default function Dashboard() {
             <h1 className="text-4xl font-serif mb-2 text-brand-black">Viral Product Tracker</h1>
             <p className="text-sm text-brand-black/60 uppercase tracking-widest">Manage your finds & content strategy</p>
           </div>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus size={16} /> Add New Find
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/dashboard/pinterest" className="btn-outline flex items-center gap-2">
+              Pinterest Dashboard
+            </Link>
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus size={16} /> Add New Find
+            </button>
+          </div>
         </div>
 
         {showAddModal && (
@@ -337,6 +344,7 @@ export default function Dashboard() {
                         <td className="px-6 py-4 text-xs opacity-60 text-brand-black">{new Date(p.dateAdded).toLocaleDateString()}</td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex flex-col items-end gap-2">
+                            <CreatePinsButton productId={p.id} />
                             <button
                               onClick={() => handleCreateBlogPost(p)}
                               disabled={creatingBlogPostId === p.id}
@@ -400,6 +408,7 @@ export default function Dashboard() {
                       >
                         {p.published ? 'Unpublish' : 'Publish Product'}
                       </button>
+                      <CreatePinsButton productId={p.id} className="btn-outline py-2 px-4 text-[10px]" />
                       <button
                         onClick={() => handleCreateBlogPost(p)}
                         disabled={creatingBlogPostId === p.id}

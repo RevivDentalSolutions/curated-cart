@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ShoppingCart, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { isAdminAuthenticated } from '@/lib/admin-auth';
+import CreatePinsButton from '@/components/CreatePinsButton';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import BlogArticleHeader from '@/components/BlogArticleHeader';
@@ -114,6 +116,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
   await connection();
   const { slug } = await params;
   const post = await getPost(slug);
+  const isAdmin = await isAdminAuthenticated();
 
   if (!post || !post.isPublished) {
     notFound();
@@ -134,6 +137,17 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
       />
 
       <div className="container mx-auto max-w-3xl px-4 pt-12 md:pt-16">
+        {isAdmin && (
+          <div className="not-prose mb-8 rounded-sm border border-brand-blush bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-brand-gold">Admin Pinterest Workflow</p>
+                <p className="mt-1 text-sm text-brand-black/60">Generate three approval-based pin drafts for this post before publishing.</p>
+              </div>
+              <CreatePinsButton blogPostId={post.id} className="btn-primary px-4 py-2 text-xs" />
+            </div>
+          </div>
+        )}
         <div className="prose prose-brand max-w-none text-brand-black/80">
           {(post.excerpt || post.metaDescription) && (
             <p className="text-xl font-light italic leading-9 text-brand-black/70 md:text-2xl md:leading-10">
