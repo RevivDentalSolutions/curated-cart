@@ -17,16 +17,24 @@ export async function createProductDraftFromLead(leadId: string, generateBundle 
     });
 
     const isAmazonUrl = lead.sourceUrl?.includes('amazon.') || lead.sourceUrl?.includes('amzn.to');
-    const product = await tx.product.create({
+    const existingProduct = lead.asin
+      ? await tx.product.findFirst({ where: { amazonAsin: lead.asin }, include: { category: true } })
+      : null;
+    const product = existingProduct || await tx.product.create({
       data: {
         name: lead.title,
         categoryId: category.id,
         amazonLink: isAmazonUrl ? lead.sourceUrl : null,
-        affiliateLink: !isAmazonUrl ? lead.sourceUrl : null,
+        affiliateLink: lead.affiliatePlaceholderUrl || (!isAmazonUrl ? lead.sourceUrl : null),
+        affiliatePlaceholderUrl: lead.affiliatePlaceholderUrl,
+        imageUrl: lead.imageUrl,
+        amazonAsin: lead.asin,
+        rating: lead.rating,
+        reviewCount: lead.reviewCount,
         price: lead.estimatedPrice,
         source: lead.source,
         viralTrendNotes: `${lead.trendKeyword ? `Trend keyword: ${lead.trendKeyword}. ` : ''}${lead.reasonItMightSell}`,
-        contentIdea: `Draft created from Product Scout with virality score ${lead.viralityScore}/100. Review sourcing, affiliate link, images, and compliance before publishing.${lead.imageUrl ? ` Suggested image source: ${lead.imageUrl}` : ''}`,
+        contentIdea: `Draft created from Product Scout with virality score ${lead.viralityScore}/100. Review sourcing, affiliate link, images, and compliance before publishing.${lead.imageUrl ? ` Suggested image source: ${lead.imageUrl}` : ''}${lead.asin ? ` Amazon ASIN: ${lead.asin}.` : ''}${lead.rating ? ` Rating: ${lead.rating}/5.` : ''}${lead.reviewCount ? ` Reviews: ${lead.reviewCount}.` : ''}`,
         blogPostStatus: 'Needs Content',
       },
       include: { category: true },
