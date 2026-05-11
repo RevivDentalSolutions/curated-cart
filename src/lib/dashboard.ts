@@ -15,14 +15,14 @@ export async function getDashboardStats() {
 
   const productsNeedsContent = await prisma.product.findMany({
     where: { blogPostStatus: 'Needs Content' },
-    include: { category: true },
+    include: { category: true, blogPosts: { orderBy: { createdAt: 'desc' }, take: 1 } },
     take: 5,
     orderBy: { dateAdded: 'desc' },
   });
 
   const productsReadyToPromote = await prisma.product.findMany({
     where: { blogPostStatus: 'Ready to Promote' },
-    include: { category: true, contentBundle: true },
+    include: { category: true, contentBundle: true, blogPosts: { orderBy: { createdAt: 'desc' }, take: 1 } },
     take: 5,
     orderBy: { dateAdded: 'desc' },
   });

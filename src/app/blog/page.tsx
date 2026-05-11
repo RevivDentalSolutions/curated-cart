@@ -70,7 +70,7 @@ export default async function BlogPage() {
                 {post.title}
               </h2>
               <p className="text-sm text-brand-black/60 line-clamp-2 leading-relaxed mb-6">
-                {post.metaDescription}
+                {post.excerpt || post.metaDescription}
               </p>
               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 group-hover:gap-4 transition-all text-brand-black">
                 Read the Review <ArrowRight size={12} />

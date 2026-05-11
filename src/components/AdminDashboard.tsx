@@ -15,6 +15,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeProduct, setActiveProduct] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [creatingBlogPostId, setCreatingBlogPostId] = useState<string | null>(null);
+  const [updatingBlogPostId, setUpdatingBlogPostId] = useState<string | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -91,6 +93,53 @@ export default function Dashboard() {
       }
     } catch {
       alert('Failed to update publish status');
+    }
+  };
+
+  const handleCreateBlogPost = async (product: any) => {
+    setCreatingBlogPostId(product.id);
+    try {
+      const res = await fetch(`/api/products/${product.id}/blog-post`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: true }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchData();
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert('Failed to create blog post');
+    } finally {
+      setCreatingBlogPostId(null);
+    }
+  };
+
+  const handleBlogPostPublishToggle = async (product: any) => {
+    const post = product.blogPosts?.[0];
+    if (!post) {
+      return;
+    }
+
+    setUpdatingBlogPostId(post.id);
+    try {
+      const res = await fetch(`/api/products/${product.id}/blog-post`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId: post.id, isPublished: !post.isPublished }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchData();
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert('Failed to update blog post');
+    } finally {
+      setUpdatingBlogPostId(null);
     }
   };
 
@@ -287,12 +336,31 @@ export default function Dashboard() {
                         </td>
                         <td className="px-6 py-4 text-xs opacity-60 text-brand-black">{new Date(p.dateAdded).toLocaleDateString()}</td>
                         <td className="px-6 py-4 text-right">
-                          <button 
-                            onClick={() => setActiveProduct(p)}
-                            className="text-brand-gold hover:text-brand-black transition-colors"
-                          >
-                            <FileText size={16} />
-                          </button>
+                          <div className="flex flex-col items-end gap-2">
+                            <button
+                              onClick={() => handleCreateBlogPost(p)}
+                              disabled={creatingBlogPostId === p.id}
+                              className="btn-outline py-2 px-3 text-[9px] disabled:opacity-50"
+                            >
+                              {creatingBlogPostId === p.id ? 'Creating...' : p.blogPosts?.[0] ? 'Refresh Blog Post' : 'Create Blog Post'}
+                            </button>
+                            {p.blogPosts?.[0] && (
+                              <button
+                                onClick={() => handleBlogPostPublishToggle(p)}
+                                disabled={updatingBlogPostId === p.blogPosts[0].id}
+                                className="btn-outline py-2 px-3 text-[9px] disabled:opacity-50"
+                              >
+                                {p.blogPosts[0].isPublished ? 'Unpublish Post' : 'Publish Post'}
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => setActiveProduct(p)}
+                              className="text-brand-gold hover:text-brand-black transition-colors"
+                              title="Open content assistant"
+                            >
+                              <FileText size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -325,13 +393,29 @@ export default function Dashboard() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                       <button
                         onClick={() => handlePublishToggle(p)}
                         className="btn-outline py-2 px-4 text-[10px]"
                       >
                         {p.published ? 'Unpublish' : 'Publish Product'}
                       </button>
+                      <button
+                        onClick={() => handleCreateBlogPost(p)}
+                        disabled={creatingBlogPostId === p.id}
+                        className="btn-outline py-2 px-4 text-[10px] disabled:opacity-50"
+                      >
+                        {creatingBlogPostId === p.id ? 'Creating...' : p.blogPosts?.[0] ? 'Refresh Blog Post' : 'Create Blog Post'}
+                      </button>
+                      {p.blogPosts?.[0] && (
+                        <button
+                          onClick={() => handleBlogPostPublishToggle(p)}
+                          disabled={updatingBlogPostId === p.blogPosts[0].id}
+                          className="btn-outline py-2 px-4 text-[10px] disabled:opacity-50"
+                        >
+                          {p.blogPosts[0].isPublished ? 'Unpublish Post' : 'Publish Post'}
+                        </button>
+                      )}
                       <button 
                         onClick={() => setActiveProduct(p)}
                         className="btn-outline py-2 px-4 text-[10px]"

@@ -92,6 +92,7 @@ model BlogPost {
   id              String    @id @default(cuid())
   title           String
   content         String?
+  excerpt         String?
   slug            String    @unique
   categoryId      String
   metaTitle       String?

@@ -159,7 +159,7 @@ export default async function Home() {
                   {post.title}
                 </h3>
                 <p className="text-sm text-brand-black/70 line-clamp-2 leading-relaxed mb-6">
-                  {post.metaDescription}
+                  {post.excerpt || post.metaDescription}
                 </p>
                 <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-2 group-hover:gap-4 transition-all text-brand-black">
                   Read the Review <ArrowRight size={12} />
