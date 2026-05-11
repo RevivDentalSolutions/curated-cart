@@ -16,11 +16,14 @@ export type RainforestProduct = {
 type RainforestSearchResult = Record<string, unknown>;
 
 const RAINFOREST_ENDPOINT = 'https://api.rainforestapi.com/request';
+const RAINFOREST_AUTH_METHOD = 'api_key query parameter';
 const AMAZON_DOMAIN = 'amazon.com';
 const AESTHETIC_TERMS = ['aesthetic', 'pretty', 'minimal', 'neutral', 'stylish', 'decor', 'ceramic', 'gold', 'glass', 'linen', 'bow', 'vanity', 'cozy', 'ribbed', 'woven'];
 
 export async function searchRainforestProducts(keyword: string) {
-  const apiKey = process.env.RAINFOREST_API_KEY;
+  const apiKey = process.env.RAINFOREST_API_KEY?.trim();
+
+  logRainforestConfig(Boolean(apiKey));
 
   if (!apiKey) {
     throw new Error('RAINFOREST_API_KEY is not configured. Add it to Vercel environment variables before generating Amazon product drafts.');
@@ -45,19 +48,40 @@ export async function searchRainforestProducts(keyword: string) {
     ].join(','),
   });
 
+  logRainforestRequest(keyword, params);
+
   const response = await fetch(`${RAINFOREST_ENDPOINT}?${params.toString()}`, {
     headers: { Accept: 'application/json' },
     signal: AbortSignal.timeout(15000),
   });
 
+  const responseText = await response.text();
+  const payload = parseRainforestPayload(responseText);
+
   if (!response.ok) {
+    console.warn('[Rainforest API] Search request failed', {
+      status: response.status,
+      statusText: response.statusText,
+      apiKeyPresent: true,
+      authMethod: RAINFOREST_AUTH_METHOD,
+      responseMessage: extractRainforestErrorMessage(payload, responseText, apiKey),
+    });
     throw new Error(`Rainforest API search failed with status ${response.status}`);
   }
 
-  const payload = await response.json() as { search_results?: RainforestSearchResult[]; request_info?: { success?: boolean; message?: string }; error?: string };
+  console.info('[Rainforest API] Search request completed', {
+    status: response.status,
+    resultCount: payload.search_results?.length ?? 0,
+  });
 
   if (payload.request_info?.success === false || payload.error) {
-    throw new Error(payload.error || payload.request_info?.message || 'Rainforest API search failed');
+    const message = extractRainforestErrorMessage(payload, responseText, apiKey);
+    console.warn('[Rainforest API] Search response was unsuccessful', {
+      apiKeyPresent: true,
+      authMethod: RAINFOREST_AUTH_METHOD,
+      responseMessage: message,
+    });
+    throw new Error(message || 'Rainforest API search failed');
   }
 
   const products = (payload.search_results ?? [])
@@ -130,6 +154,46 @@ function normalizeRainforestResult(result: RainforestSearchResult, keyword: stri
     score,
     reason,
   };
+}
+
+
+function logRainforestConfig(apiKeyPresent: boolean) {
+  console.info('[Rainforest API] Configuration check', {
+    apiKeyPresent,
+    envVar: 'RAINFOREST_API_KEY',
+    authMethod: RAINFOREST_AUTH_METHOD,
+  });
+}
+
+function logRainforestRequest(keyword: string, params: URLSearchParams) {
+  const safeParams = new URLSearchParams(params);
+  safeParams.set('api_key', '[REDACTED]');
+
+  console.info('[Rainforest API] Starting product search', {
+    endpoint: RAINFOREST_ENDPOINT,
+    authMethod: RAINFOREST_AUTH_METHOD,
+    searchTerm: keyword,
+    queryParams: safeParams.toString(),
+  });
+}
+
+function parseRainforestPayload(responseText: string): { search_results?: RainforestSearchResult[]; request_info?: { success?: boolean; message?: string }; error?: string } {
+  if (!responseText) return {};
+
+  try {
+    return JSON.parse(responseText);
+  } catch {
+    return {};
+  }
+}
+
+function extractRainforestErrorMessage(payload: { request_info?: { message?: string }; error?: string }, responseText: string, apiKey: string) {
+  const message = payload.error || payload.request_info?.message || responseText.slice(0, 300);
+  return redactApiKey(message, apiKey);
+}
+
+function redactApiKey(value: string, apiKey: string) {
+  return value.replaceAll(apiKey, '[REDACTED]');
 }
 
 function readString(value: unknown) {
