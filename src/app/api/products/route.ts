@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
+
+function revalidateProductPages(categoryId?: string) {
+  revalidatePath('/');
+  revalidatePath('/top-picks');
+  revalidatePath('/categories');
+  if (categoryId) {
+    revalidatePath(`/categories/${categoryId}`);
+  }
+}
 
 export async function POST(req: NextRequest) {
   if (!isAdminRequest(req)) {
@@ -9,16 +19,25 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, categoryId, amazonLink, affiliateLink, affiliatePlaceholderUrl, imageUrl, amazonAsin, rating, reviewCount, price, source, viralTrendNotes, contentIdea } = body;
+    const { name, categoryId, amazonLink, affiliateLink, affiliatePlaceholderUrl, imageUrl, amazonAsin, rating, reviewCount, price, source, viralTrendNotes, contentIdea, published } = body;
 
     if (!name || !categoryId) {
       return NextResponse.json({ error: 'Name and Category are required' }, { status: 400 });
     }
 
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+
+    if (!category) {
+      return NextResponse.json({ error: 'Choose a valid category before saving this product.' }, { status: 400 });
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
-        categoryId,
+        categoryId: category.id,
         amazonLink,
         affiliateLink,
         affiliatePlaceholderUrl,
@@ -31,13 +50,44 @@ export async function POST(req: NextRequest) {
         viralTrendNotes,
         contentIdea,
         blogPostStatus: 'Needs Content',
+        published: typeof published === 'boolean' ? published : true,
       },
     });
+
+    revalidateProductPages(product.categoryId);
 
     return NextResponse.json({ success: true, data: product });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to create product';
     console.error('API Error:', error);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  if (!isAdminRequest(req)) {
+    return unauthorizedAdminResponse();
+  }
+
+  try {
+    const body = await req.json();
+    const { id, published } = body;
+
+    if (!id || typeof published !== 'boolean') {
+      return NextResponse.json({ error: 'Product id and published boolean are required' }, { status: 400 });
+    }
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: { published },
+      include: { category: true },
+    });
+
+    revalidateProductPages(product.categoryId);
+
+    return NextResponse.json({ success: true, data: product });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to update product';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

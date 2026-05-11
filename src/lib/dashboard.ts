@@ -10,7 +10,7 @@ export async function getDashboardStats() {
   });
 
   const publishedCount = await prisma.product.count({
-    where: { blogPostStatus: 'Published' },
+    where: { published: true },
   });
 
   const productsNeedsContent = await prisma.product.findMany({

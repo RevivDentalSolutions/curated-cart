@@ -10,8 +10,9 @@ export default async function TopPicks() {
     include: {
       products: {
         where: {
-          blogPostStatus: 'Published'
+          published: true
         },
+        orderBy: { dateAdded: 'desc' },
         take: 3
       }
     }

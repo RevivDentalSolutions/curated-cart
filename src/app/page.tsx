@@ -12,7 +12,7 @@ export default async function Home() {
 
   const featuredFinds = await prisma.product.findMany({
     where: {
-      blogPostStatus: 'Published'
+      published: true
     },
     include: {
       category: true
