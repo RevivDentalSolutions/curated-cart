@@ -10,7 +10,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ id: s
     where: { id },
     include: {
       products: {
-        where: { blogPostStatus: 'Published' },
+        where: { published: true },
         orderBy: { dateAdded: 'desc' }
       }
     }
