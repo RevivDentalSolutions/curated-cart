@@ -14,19 +14,55 @@ export type RainforestProduct = {
 };
 
 type RainforestSearchResult = Record<string, unknown>;
+type RainforestPayload = {
+  search_results?: RainforestSearchResult[];
+  request_info?: { success?: boolean; message?: string; credits_used?: number; credits_remaining?: number };
+  error?: string;
+  message?: string;
+};
+
+export type RainforestErrorKind = 'missing_key' | 'invalid_key' | 'wrong_request_format' | 'exhausted_credits' | 'unknown_error';
+
+export class RainforestApiError extends Error {
+  kind: RainforestErrorKind;
+  status?: number;
+  rawMessage?: string;
+
+  constructor(kind: RainforestErrorKind, message: string, options: { status?: number; rawMessage?: string } = {}) {
+    super(message);
+    this.name = 'RainforestApiError';
+    this.kind = kind;
+    this.status = options.status;
+    this.rawMessage = options.rawMessage;
+  }
+}
 
 const RAINFOREST_ENDPOINT = 'https://api.rainforestapi.com/request';
 const RAINFOREST_AUTH_METHOD = 'api_key query parameter';
 const AMAZON_DOMAIN = 'amazon.com';
 const AESTHETIC_TERMS = ['aesthetic', 'pretty', 'minimal', 'neutral', 'stylish', 'decor', 'ceramic', 'gold', 'glass', 'linen', 'bow', 'vanity', 'cozy', 'ribbed', 'woven'];
 
+export function rainforestDebugConfig() {
+  const apiKey = process.env.RAINFOREST_API_KEY?.trim() || '';
+  return {
+    apiKeyPresent: Boolean(apiKey),
+    apiKeyLength: apiKey.length,
+    envVar: 'RAINFOREST_API_KEY',
+    authMethod: RAINFOREST_AUTH_METHOD,
+    endpointFormat: `${RAINFOREST_ENDPOINT}?api_key=KEY&type=search&amazon_domain=${AMAZON_DOMAIN}&search_term=KEYWORD`,
+  };
+}
+
 export async function searchRainforestProducts(keyword: string) {
   const apiKey = process.env.RAINFOREST_API_KEY?.trim();
 
-  logRainforestConfig(Boolean(apiKey));
+  logRainforestConfig();
 
   if (!apiKey) {
-    throw new Error('RAINFOREST_API_KEY is not configured. Add it to Vercel environment variables before generating Amazon product drafts.');
+    throw new RainforestApiError(
+      'missing_key',
+      'API key missing: RAINFOREST_API_KEY is not configured. Add it to server environment variables before running Rainforest searches.'
+    );
   }
 
   const params = new URLSearchParams({
@@ -59,14 +95,18 @@ export async function searchRainforestProducts(keyword: string) {
   const payload = parseRainforestPayload(responseText);
 
   if (!response.ok) {
+    const rawMessage = extractRainforestErrorMessage(payload, responseText, apiKey);
+    const classified = classifyRainforestError(response.status, rawMessage);
     console.warn('[Rainforest API] Search request failed', {
       status: response.status,
       statusText: response.statusText,
       apiKeyPresent: true,
+      apiKeyLength: apiKey.length,
       authMethod: RAINFOREST_AUTH_METHOD,
-      responseMessage: extractRainforestErrorMessage(payload, responseText, apiKey),
+      errorKind: classified.kind,
+      responseMessage: rawMessage,
     });
-    throw new Error(`Rainforest API search failed with status ${response.status}`);
+    throw new RainforestApiError(classified.kind, classified.message, { status: response.status, rawMessage });
   }
 
   console.info('[Rainforest API] Search request completed', {
@@ -75,13 +115,16 @@ export async function searchRainforestProducts(keyword: string) {
   });
 
   if (payload.request_info?.success === false || payload.error) {
-    const message = extractRainforestErrorMessage(payload, responseText, apiKey);
+    const rawMessage = extractRainforestErrorMessage(payload, responseText, apiKey);
+    const classified = classifyRainforestError(response.status, rawMessage);
     console.warn('[Rainforest API] Search response was unsuccessful', {
       apiKeyPresent: true,
+      apiKeyLength: apiKey.length,
       authMethod: RAINFOREST_AUTH_METHOD,
-      responseMessage: message,
+      errorKind: classified.kind,
+      responseMessage: rawMessage,
     });
-    throw new Error(message || 'Rainforest API search failed');
+    throw new RainforestApiError(classified.kind, classified.message, { status: response.status, rawMessage });
   }
 
   const products = (payload.search_results ?? [])
@@ -105,6 +148,33 @@ export function rainforestProductToLead(product: RainforestProduct, trendKeyword
     asin: product.asin,
     affiliatePlaceholderUrl: product.affiliatePlaceholderUrl,
     reasonItMightSell: product.reason,
+  };
+}
+
+export function keywordFallbackLead(keyword: string, errorMessage: string): ProductLeadInput {
+  return {
+    title: keyword,
+    source: 'Keyword-only Scout fallback',
+    trendKeyword: keyword,
+    reasonItMightSell: `Rainforest lookup failed, so Scout saved this keyword-only lead for manual research. Error: ${errorMessage}`,
+  };
+}
+
+export function safeRainforestError(error: unknown) {
+  if (error instanceof RainforestApiError) {
+    return {
+      kind: error.kind,
+      status: error.status,
+      message: error.message,
+      rawMessage: error.rawMessage,
+    };
+  }
+
+  const message = error instanceof Error ? error.message : 'Unknown Rainforest API error';
+  return {
+    kind: 'unknown_error' as const,
+    message,
+    rawMessage: message,
   };
 }
 
@@ -156,13 +226,8 @@ function normalizeRainforestResult(result: RainforestSearchResult, keyword: stri
   };
 }
 
-
-function logRainforestConfig(apiKeyPresent: boolean) {
-  console.info('[Rainforest API] Configuration check', {
-    apiKeyPresent,
-    envVar: 'RAINFOREST_API_KEY',
-    authMethod: RAINFOREST_AUTH_METHOD,
-  });
+function logRainforestConfig() {
+  console.info('[Rainforest API] Configuration check', rainforestDebugConfig());
 }
 
 function logRainforestRequest(keyword: string, params: URLSearchParams) {
@@ -177,7 +242,7 @@ function logRainforestRequest(keyword: string, params: URLSearchParams) {
   });
 }
 
-function parseRainforestPayload(responseText: string): { search_results?: RainforestSearchResult[]; request_info?: { success?: boolean; message?: string }; error?: string } {
+function parseRainforestPayload(responseText: string): RainforestPayload {
   if (!responseText) return {};
 
   try {
@@ -187,13 +252,35 @@ function parseRainforestPayload(responseText: string): { search_results?: Rainfo
   }
 }
 
-function extractRainforestErrorMessage(payload: { request_info?: { message?: string }; error?: string }, responseText: string, apiKey: string) {
-  const message = payload.error || payload.request_info?.message || responseText.slice(0, 300);
+function extractRainforestErrorMessage(payload: RainforestPayload, responseText: string, apiKey: string) {
+  const message = payload.error || payload.message || payload.request_info?.message || responseText.slice(0, 300) || 'Rainforest API returned an empty error response';
   return redactApiKey(message, apiKey);
 }
 
+function classifyRainforestError(status: number | undefined, rawMessage: string): { kind: RainforestErrorKind; message: string } {
+  const lower = rawMessage.toLowerCase();
+
+  if (lower.includes('api key') && (lower.includes('missing') || lower.includes('required') || lower.includes('not supplied'))) {
+    return { kind: 'missing_key', message: `API key missing: ${rawMessage}` };
+  }
+
+  if (status === 401 || lower.includes('invalid api key') || lower.includes('unauthorized') || lower.includes('authentication')) {
+    return { kind: 'invalid_key', message: `Invalid key: Rainforest rejected RAINFOREST_API_KEY. Raw error: ${rawMessage}` };
+  }
+
+  if (status === 400 || lower.includes('parameter') || lower.includes('invalid request') || lower.includes('request format') || lower.includes('type')) {
+    return { kind: 'wrong_request_format', message: `Wrong request format: verify api_key, type=search, amazon_domain, and search_term query parameters. Raw error: ${rawMessage}` };
+  }
+
+  if (status === 402 || status === 429 || lower.includes('credit') || lower.includes('quota') || lower.includes('limit') || lower.includes('exhaust')) {
+    return { kind: 'exhausted_credits', message: `Exhausted credits or rate limit: ${rawMessage}` };
+  }
+
+  return { kind: 'unknown_error', message: `Unknown error: Rainforest API search failed${status ? ` with status ${status}` : ''}. Raw error: ${rawMessage}` };
+}
+
 function redactApiKey(value: string, apiKey: string) {
-  return value.replaceAll(apiKey, '[REDACTED]');
+  return apiKey ? value.replaceAll(apiKey, '[REDACTED]') : value;
 }
 
 function readString(value: unknown) {

@@ -3,7 +3,7 @@ import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { createProductDraftFromLead } from '@/lib/productLeadApproval';
 import { normalizeLead, ProductLeadInput, scoutRequestSchema } from '@/lib/productScout';
-import { rainforestProductToLead, searchRainforestProducts } from '@/lib/rainforest';
+import { keywordFallbackLead, rainforestProductToLead, safeRainforestError, searchRainforestProducts } from '@/lib/rainforest';
 
 export async function GET(req: NextRequest) {
   if (!isAdminRequest(req)) return unauthorizedAdminResponse();
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     const importedLeads = parsed.data.leads ?? [];
-    const rainforestLeads = await findRainforestProductLeads(importedLeads, parsed.data.sourceType);
+    const { leads: rainforestLeads, errors: rainforestErrors } = await findRainforestProductLeads(importedLeads, parsed.data.sourceType);
     const leads = rainforestLeads.length ? rainforestLeads : importedLeads;
     const data = leads.map((lead) => {
       const normalized = normalizeLead({
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, data: created, meta: { discovered: data.length, deduped: data.length - deduped.length, drafted } }, { status: 201 });
+    return NextResponse.json({ success: true, data: created, meta: { discovered: data.length, deduped: data.length - deduped.length, drafted, rainforestErrors } }, { status: 201 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to save product lead';
     return NextResponse.json({ error: message }, { status: 500 });
@@ -70,20 +70,28 @@ export async function POST(req: NextRequest) {
 }
 
 async function findRainforestProductLeads(leads: ProductLeadInput[], sourceType: string) {
-  if (sourceType === 'rss' || sourceType === 'url' || sourceType === 'amazon') return [];
+  if (sourceType === 'rss' || sourceType === 'url' || sourceType === 'amazon') return { leads: [], errors: [] };
 
   const keywordCandidates = leads
     .map((lead) => (lead.trendKeyword && lead.trendKeyword !== 'manual trend import' ? lead.trendKeyword : sourceType === 'manual' ? '' : lead.title).trim())
     .filter(Boolean);
   const keywords = Array.from(new Set(keywordCandidates)).slice(0, 10);
 
-  const products = [];
+  const products: ProductLeadInput[] = [];
+  const errors: ReturnType<typeof safeRainforestError>[] = [];
+
   for (const keyword of keywords) {
-    const rainforestProducts = await searchRainforestProducts(keyword);
-    products.push(...rainforestProducts.map((product) => rainforestProductToLead(product, keyword)));
+    try {
+      const rainforestProducts = await searchRainforestProducts(keyword);
+      products.push(...rainforestProducts.map((product) => rainforestProductToLead(product, keyword)));
+    } catch (error) {
+      const safeError = safeRainforestError(error);
+      errors.push(safeError);
+      products.push(keywordFallbackLead(keyword, safeError.message));
+    }
   }
 
-  return products;
+  return { leads: products, errors };
 }
 
 type NormalizedLead = ReturnType<typeof normalizeLead>;
