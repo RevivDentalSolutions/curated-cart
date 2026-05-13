@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ShoppingCart, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ExternalLink, ShoppingCart, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import CreatePinsButton from '@/components/CreatePinsButton';
@@ -42,6 +42,59 @@ function getProductInsertIndex(paragraphCount: number, productIndex: number, pro
   return Math.min(
     paragraphCount - 1,
     Math.max(0, Math.floor(((productIndex + 1) * paragraphCount) / (productCount + 1)))
+  );
+}
+
+
+function FeaturedProductImageCard({
+  imageUrl,
+  title,
+  product,
+}: {
+  imageUrl?: string | null;
+  title: string;
+  product?: BlogProduct;
+}) {
+  if (!imageUrl) {
+    return null;
+  }
+
+  const productLink = product?.amazonLink || product?.affiliateLink;
+
+  return (
+    <aside className="not-prose mx-auto my-10 max-w-2xl overflow-hidden rounded-sm border border-brand-blush/80 bg-white/85 p-3 shadow-sm shadow-brand-beige/20 md:my-12">
+      <div className="grid gap-5 sm:grid-cols-[180px_1fr] sm:items-center md:grid-cols-[220px_1fr]">
+        <div className="aspect-square overflow-hidden rounded-sm bg-brand-cream">
+          <ProductImage
+            src={imageUrl}
+            alt={product?.name || title}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <div className="px-1 pb-2 sm:py-3 sm:pr-5">
+          <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-brand-gold">
+            Featured find from this edit
+          </span>
+          <h3 className="mt-3 text-2xl leading-tight text-brand-black md:text-3xl">
+            {product?.name || title}
+          </h3>
+          <p className="mt-4 text-sm leading-7 text-brand-black/60">
+            {product?.viralTrendNotes ||
+              'A polished product detail from this guide, styled as a smaller editorial card so the article stays calm and readable.'}
+          </p>
+          {productLink && (
+            <Link
+              href={productLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.24em] text-brand-black transition-colors hover:text-brand-gold"
+            >
+              Shop the featured find <ExternalLink size={12} />
+            </Link>
+          )}
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -126,6 +179,9 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
   const readingTime = calculateReadingTime(
     [post.title, post.excerpt, post.metaDescription, post.content, ...post.products.map((product) => product.viralTrendNotes)].join(' ')
   );
+  const featuredProduct =
+    post.products.find((product) => product.imageUrl === post.featuredImage) || post.products[0];
+  const featuredProductImage = post.featuredImage || featuredProduct?.imageUrl;
 
   return (
     <article className="pb-20">
@@ -155,24 +211,18 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
             </p>
           )}
 
-          {post.featuredImage && (
-            <figure className="not-prose my-10 overflow-hidden border border-brand-blush bg-white p-3 shadow-sm md:my-14">
-              <img
-                src={post.featuredImage}
-                alt={post.title}
-                className="aspect-[4/5] w-full object-cover md:aspect-[16/10]"
-              />
-              <figcaption className="px-2 py-4 text-center text-[10px] font-bold uppercase tracking-[0.24em] text-brand-black/40">
-                Curated inspiration for this edit
-              </figcaption>
-            </figure>
-          )}
-
           {paragraphs.length > 0 ? (
             <div className="space-y-7 text-[1.05rem] leading-8 text-brand-black/75 md:text-lg md:leading-9">
               {paragraphs.map((paragraph, paragraphIndex) => (
                 <div key={`${paragraph.slice(0, 24)}-${paragraphIndex}`}>
                   <p className="whitespace-pre-wrap">{paragraph}</p>
+                  {paragraphIndex === 0 && (
+                    <FeaturedProductImageCard
+                      imageUrl={featuredProductImage}
+                      title={post.title}
+                      product={featuredProduct}
+                    />
+                  )}
                   {post.products.map((product, productIndex) =>
                     getProductInsertIndex(paragraphs.length, productIndex, post.products.length) === paragraphIndex ? (
                       <InlineProductCard key={product.id} product={product} index={productIndex} />
@@ -182,13 +232,16 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
               ))}
             </div>
           ) : (
-            post.products.length > 0 && (
-              <div className="not-prose">
-                {post.products.map((product, productIndex) => (
-                  <InlineProductCard key={product.id} product={product} index={productIndex} />
-                ))}
-              </div>
-            )
+            <div className="not-prose">
+              <FeaturedProductImageCard
+                imageUrl={featuredProductImage}
+                title={post.title}
+                product={featuredProduct}
+              />
+              {post.products.map((product, productIndex) => (
+                <InlineProductCard key={product.id} product={product} index={productIndex} />
+              ))}
+            </div>
           )}
 
           <div className="not-prose my-12 border-l-2 border-brand-gold bg-brand-blush/20 p-8">
