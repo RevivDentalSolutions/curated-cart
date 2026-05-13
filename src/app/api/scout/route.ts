@@ -31,8 +31,18 @@ export async function POST(req: NextRequest) {
     }
 
     const importedLeads = parsed.data.leads ?? [];
-    const rainforestLeads = await findRainforestProductLeads(importedLeads, parsed.data.sourceType);
+    const { leads: rainforestLeads, errors: rainforestErrors, attempted: rainforestAttempted } = await findRainforestProductLeads(importedLeads, parsed.data.sourceType);
+    const usingKeywordFallback = rainforestAttempted && !rainforestLeads.length && importedLeads.length > 0;
     const leads = rainforestLeads.length ? rainforestLeads : importedLeads;
+
+    console.info('[Scout API] Lead import prepared', {
+      sourceType: parsed.data.sourceType,
+      imported: importedLeads.length,
+      rainforest: rainforestLeads.length,
+      usingKeywordFallback,
+      rainforestAttempted,
+      rainforestErrors: rainforestErrors.length,
+    });
     const data = leads.map((lead) => {
       const normalized = normalizeLead({
         ...lead,
@@ -62,28 +72,54 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, data: created, meta: { discovered: data.length, deduped: data.length - deduped.length, drafted } }, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      data: created,
+      meta: {
+        discovered: data.length,
+        deduped: data.length - deduped.length,
+        drafted,
+        fallbackCreated: usingKeywordFallback ? created.length : 0,
+        rainforestErrors,
+      },
+    }, { status: 201 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to save product lead';
+    console.error('[Scout API] Lead import failed', { message });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
+function shouldTryRainforest(sourceType: string) {
+  return !['rss', 'url', 'amazon'].includes(sourceType);
+}
+
 async function findRainforestProductLeads(leads: ProductLeadInput[], sourceType: string) {
-  if (sourceType === 'rss' || sourceType === 'url' || sourceType === 'amazon') return [];
+  if (!shouldTryRainforest(sourceType)) return { leads: [], errors: [] as string[], attempted: false };
 
   const keywordCandidates = leads
     .map((lead) => (lead.trendKeyword && lead.trendKeyword !== 'manual trend import' ? lead.trendKeyword : sourceType === 'manual' ? '' : lead.title).trim())
     .filter(Boolean);
   const keywords = Array.from(new Set(keywordCandidates)).slice(0, 10);
 
-  const products = [];
+  const attempted = keywords.length > 0;
+  const products: ProductLeadInput[] = [];
+  const errors: string[] = [];
   for (const keyword of keywords) {
-    const rainforestProducts = await searchRainforestProducts(keyword);
-    products.push(...rainforestProducts.map((product) => rainforestProductToLead(product, keyword)));
+    try {
+      const rainforestProducts = await searchRainforestProducts(keyword);
+      if (!rainforestProducts.length) {
+        console.info('[Scout API] Rainforest returned no products; keyword-only fallback remains enabled', { keyword });
+      }
+      products.push(...rainforestProducts.map((product) => rainforestProductToLead(product, keyword)));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown Rainforest API error';
+      errors.push(`${keyword}: ${message}`);
+      console.warn('[Scout API] Rainforest search failed; keyword-only fallback remains enabled', { keyword, message });
+    }
   }
 
-  return products;
+  return { leads: products, errors, attempted };
 }
 
 type NormalizedLead = ReturnType<typeof normalizeLead>;
