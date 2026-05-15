@@ -1,15 +1,42 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { 
-  Plus, Search, TrendingUp, FileText, 
+import {
+  Plus, Search, TrendingUp, FileText,
   DollarSign, Calendar, CheckSquare,
-  Clock, AlertCircle, Loader2
+  Clock, AlertCircle, Loader2, Layers, Edit3
 } from 'lucide-react';
 import AIAssistant from '@/components/AIAssistant';
 import CreatePinsButton from '@/components/CreatePinsButton';
+
+const emptyCollectionPost = {
+  title: '',
+  categoryId: '',
+  slug: '',
+  intro: '',
+  productSections: '',
+  conclusion: '',
+  excerpt: '',
+  metaTitle: '',
+  metaDescription: '',
+  pinterestDescription: '',
+  featuredImage: '',
+  isPublished: false,
+};
+
+const emptyManualPost = {
+  title: '',
+  slug: '',
+  categoryId: '',
+  featuredImage: '',
+  excerpt: '',
+  content: '',
+  metaTitle: '',
+  metaDescription: '',
+  isPublished: false,
+};
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -17,9 +44,17 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeProduct, setActiveProduct] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
   const [creatingBlogPostId, setCreatingBlogPostId] = useState<string | null>(null);
+  const [savingBlogPost, setSavingBlogPost] = useState(false);
+  const [generatingCollectionDraft, setGeneratingCollectionDraft] = useState(false);
   const [updatingBlogPostId, setUpdatingBlogPostId] = useState<string | null>(null);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [collectionPost, setCollectionPost] = useState(emptyCollectionPost);
+  const [manualPost, setManualPost] = useState(emptyManualPost);
   const [newProduct, setNewProduct] = useState({
     name: '',
     categoryId: '',
@@ -30,24 +65,31 @@ export default function Dashboard() {
     published: true,
   });
 
+  const selectedProducts = useMemo(
+    () => selectedProductIds
+      .map((id) => allProducts.find((product) => product.id === id))
+      .filter(Boolean),
+    [allProducts, selectedProductIds]
+  );
+
   const fetchData = async () => {
     try {
-      const [dashRes, autoRes] = await Promise.all([
+      const [dashRes, autoRes, catResponse, productResponse] = await Promise.all([
         fetch('/api/dashboard'),
         fetch('/api/automations'),
+        fetch('/api/categories-list'),
+        fetch('/api/products'),
       ]);
-      
+
       const dashJson = await dashRes.json();
       const autoJson = await autoRes.json();
-      
+      const catJson = await catResponse.json();
+      const productJson = await productResponse.json();
+
       if (dashJson.success) setDashboardData(dashJson.data);
       if (autoJson.success) setAutomationData(autoJson.data);
-      
-      // Fetch categories from prisma directly in a small API
-      const catResponse = await fetch('/api/categories-list');
-      const catJson = await catResponse.json();
       if (catJson.success) setCategories(catJson.data);
-
+      if (productJson.success) setAllProducts(productJson.data);
     } catch (error) {
       console.error("Failed to fetch dashboard data", error);
     } finally {
@@ -58,6 +100,27 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const toggleCollectionProduct = (product: any) => {
+    setSelectedProductIds((current) => {
+      if (current.includes(product.id)) {
+        return current.filter((id) => id !== product.id);
+      }
+
+      if (!collectionPost.categoryId && product.categoryId) {
+        setCollectionPost((post) => ({ ...post, categoryId: product.categoryId }));
+      }
+
+      return [...current, product.id];
+    });
+  };
+
+  const openCollectionModal = (product?: any) => {
+    if (product && !selectedProductIds.includes(product.id)) {
+      toggleCollectionProduct(product);
+    }
+    setShowCollectionModal(true);
+  };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,16 +161,17 @@ export default function Dashboard() {
     }
   };
 
-  const handleCreateBlogPost = async (product: any) => {
+  const handleCreateSingleProductPost = async (product: any) => {
     setCreatingBlogPostId(product.id);
     try {
       const res = await fetch(`/api/products/${product.id}/blog-post`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPublished: true }),
+        body: JSON.stringify({ isPublished: false }),
       });
       const data = await res.json();
       if (data.success) {
+        alert('Single product post saved as a draft. Use collection posts as your primary blog workflow.');
         fetchData();
       } else {
         alert(data.error);
@@ -145,6 +209,99 @@ export default function Dashboard() {
     }
   };
 
+
+  const handleGenerateCollectionDraft = async () => {
+    if (!collectionPost.title || !collectionPost.categoryId || selectedProductIds.length < 2) {
+      alert('Add a title, choose a category, and select at least two products before generating a draft.');
+      return;
+    }
+
+    setGeneratingCollectionDraft(true);
+    try {
+      const res = await fetch('/api/blog-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'generate-draft',
+          postType: 'collection',
+          title: collectionPost.title,
+          categoryId: collectionPost.categoryId,
+          productIds: selectedProductIds,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCollectionPost((post) => ({
+          ...post,
+          title: data.data.title || post.title,
+          slug: data.data.suggestedSlug || post.slug,
+          intro: data.data.intro || post.intro,
+          productSections: data.data.productSections || post.productSections,
+          conclusion: data.data.conclusion || post.conclusion,
+          metaTitle: data.data.seoTitle || post.metaTitle,
+          metaDescription: data.data.metaDescription || post.metaDescription,
+          pinterestDescription: data.data.pinterestDescription || post.pinterestDescription,
+          excerpt: post.excerpt || data.data.metaDescription || data.data.intro || '',
+        }));
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert('Failed to generate AI draft');
+    } finally {
+      setGeneratingCollectionDraft(false);
+    }
+  };
+
+  const handleCreateCollectionPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingBlogPost(true);
+    try {
+      const res = await fetch('/api/blog-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...collectionPost, postType: 'collection', productIds: selectedProductIds }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowCollectionModal(false);
+        setSelectedProductIds([]);
+        setCollectionPost(emptyCollectionPost);
+        fetchData();
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert('Failed to create collection blog post');
+    } finally {
+      setSavingBlogPost(false);
+    }
+  };
+
+  const handleCreateManualPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingBlogPost(true);
+    try {
+      const res = await fetch('/api/blog-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...manualPost, postType: 'manual' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowManualModal(false);
+        setManualPost(emptyManualPost);
+        fetchData();
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert('Failed to create manual blog post');
+    } finally {
+      setSavingBlogPost(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-brand-cream/50">
@@ -160,6 +317,41 @@ export default function Dashboard() {
     { label: 'Potential Commission', value: 'High', icon: DollarSign, color: 'text-brand-gold' },
   ];
 
+  const ProductActions = ({ product, compact = false }: { product: any; compact?: boolean }) => (
+    <div className={compact ? 'flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end' : 'flex flex-col items-end gap-2'}>
+      <button
+        onClick={() => openCollectionModal(product)}
+        className={compact ? 'btn-primary py-2 px-4 text-[10px]' : 'btn-primary py-2 px-3 text-[9px]'}
+      >
+        Add to Collection Post
+      </button>
+      <CreatePinsButton productId={product.id} className={compact ? 'btn-outline py-2 px-4 text-[10px]' : undefined} />
+      <button
+        onClick={() => handleCreateSingleProductPost(product)}
+        disabled={creatingBlogPostId === product.id}
+        className={compact ? 'btn-outline py-2 px-4 text-[10px] disabled:opacity-50' : 'btn-outline py-2 px-3 text-[9px] disabled:opacity-50'}
+      >
+        {creatingBlogPostId === product.id ? 'Creating...' : product.blogPosts?.[0] ? 'Refresh Single Draft' : 'Create Single Product Post'}
+      </button>
+      {product.blogPosts?.[0] && (
+        <button
+          onClick={() => handleBlogPostPublishToggle(product)}
+          disabled={updatingBlogPostId === product.blogPosts[0].id}
+          className={compact ? 'btn-outline py-2 px-4 text-[10px] disabled:opacity-50' : 'btn-outline py-2 px-3 text-[9px] disabled:opacity-50'}
+        >
+          {product.blogPosts[0].isPublished ? 'Unpublish Post' : 'Publish Post'}
+        </button>
+      )}
+      <button
+        onClick={() => setActiveProduct(product)}
+        className={compact ? 'btn-outline py-2 px-4 text-[10px]' : 'text-brand-gold hover:text-brand-black transition-colors'}
+        title="Open content assistant"
+      >
+        {compact ? 'Generate Content' : <FileText size={16} />}
+      </button>
+    </div>
+  );
+
   return (
     <div className="bg-brand-cream/50 min-h-screen">
       <div className="container mx-auto px-4 py-12">
@@ -172,114 +364,177 @@ export default function Dashboard() {
             <Link href="/dashboard/pinterest" className="btn-outline flex items-center gap-2">
               Pinterest Dashboard
             </Link>
-            <button 
-              onClick={() => setShowAddModal(true)}
-              className="btn-primary flex items-center gap-2"
-            >
+            <button onClick={() => setShowManualModal(true)} className="btn-outline flex items-center gap-2">
+              <Edit3 size={16} /> Create Manual Post
+            </button>
+            <button onClick={() => openCollectionModal()} className="btn-primary flex items-center gap-2">
+              <Layers size={16} /> Create Collection Blog Post
+            </button>
+            <button onClick={() => setShowAddModal(true)} className="btn-primary flex items-center gap-2">
               <Plus size={16} /> Add New Find
             </button>
           </div>
         </div>
 
+        {selectedProductIds.length > 0 && (
+          <div className="mb-8 rounded-sm border border-brand-gold bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-brand-gold">Collection Draft Queue</p>
+                <p className="mt-1 text-sm text-brand-black/70">
+                  {selectedProductIds.length} product{selectedProductIds.length === 1 ? '' : 's'} selected: {selectedProducts.map((product: any) => product.name).join(', ')}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setSelectedProductIds([])} className="btn-outline px-4 py-2 text-xs">Clear</button>
+                <button onClick={() => openCollectionModal()} className="btn-primary px-4 py-2 text-xs">Write Collection Post</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showAddModal && (
           <div className="fixed inset-0 bg-brand-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-sm shadow-xl p-8 animate-in fade-in zoom-in duration-300">
+            <div className="bg-white w-full max-w-md rounded-sm shadow-xl p-8 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
               <h2 className="font-serif text-2xl mb-6 text-brand-black">Add New Amazon Find</h2>
               <form onSubmit={handleAddProduct} className="space-y-4">
                 <div>
                   <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Product Name</label>
-                  <input 
-                    required
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                    type="text" 
-                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
-                  />
+                  <input required value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} type="text" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Category</label>
-                  <select 
-                    required
-                    value={newProduct.categoryId}
-                    onChange={(e) => setNewProduct({...newProduct, categoryId: e.target.value})}
-                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm bg-white"
-                  >
+                  <select required value={newProduct.categoryId} onChange={(e) => setNewProduct({...newProduct, categoryId: e.target.value})} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm bg-white">
                     <option value="">Select Category</option>
-                    {categories.map((cat: any) => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
+                    {categories.map((cat: any) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Amazon Link</label>
-                  <input 
-                    value={newProduct.amazonLink}
-                    onChange={(e) => setNewProduct({...newProduct, amazonLink: e.target.value})}
-                    type="url" 
-                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
-                  />
+                  <input value={newProduct.amazonLink} onChange={(e) => setNewProduct({...newProduct, amazonLink: e.target.value})} type="url" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Product Image URL</label>
-                  <input
-                    value={newProduct.imageUrl}
-                    onChange={(e) => setNewProduct({...newProduct, imageUrl: e.target.value})}
-                    type="url"
-                    placeholder="https://..."
-                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm"
-                  />
+                  <input value={newProduct.imageUrl} onChange={(e) => setNewProduct({...newProduct, imageUrl: e.target.value})} type="url" placeholder="https://..." className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Price</label>
-                    <input 
-                      value={newProduct.price}
-                      onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                      type="number" step="0.01"
-                      className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
-                    />
+                    <input value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} type="number" step="0.01" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                   </div>
                   <div>
                     <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Source</label>
-                    <input 
-                      value={newProduct.source}
-                      onChange={(e) => setNewProduct({...newProduct, source: e.target.value})}
-                      placeholder="TikTok, IG, etc."
-                      type="text" 
-                      className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
-                    />
+                    <input value={newProduct.source} onChange={(e) => setNewProduct({...newProduct, source: e.target.value})} type="text" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                   </div>
                 </div>
                 <label className="flex items-center gap-3 rounded-sm border border-brand-blush bg-brand-cream/30 p-3 text-xs font-bold uppercase tracking-widest text-brand-black/70">
-                  <input
-                    type="checkbox"
-                    checked={newProduct.published}
-                    onChange={(e) => setNewProduct({...newProduct, published: e.target.checked})}
-                    className="h-4 w-4 accent-brand-gold"
-                  />
+                  <input type="checkbox" checked={newProduct.published} onChange={(e) => setNewProduct({...newProduct, published: e.target.checked})} className="h-4 w-4 accent-brand-gold" />
                   Publish immediately
                 </label>
                 <div className="flex gap-4 pt-4">
-                  <button 
-                    type="button" 
-                    onClick={() => setShowAddModal(false)}
-                    className="flex-grow btn-outline py-3"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="flex-grow btn-primary py-3"
-                  >
-                    Save Find
-                  </button>
+                  <button type="button" onClick={() => setShowAddModal(false)} className="flex-grow btn-outline py-3">Cancel</button>
+                  <button type="submit" className="flex-grow btn-primary py-3">Save Find</button>
                 </div>
               </form>
             </div>
           </div>
         )}
 
-        {/* Stats Grid */}
+        {showCollectionModal && (
+          <div className="fixed inset-0 bg-brand-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-4xl rounded-sm shadow-xl p-8 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+              <div className="mb-6 flex items-start justify-between gap-4">
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-brand-gold font-bold">Roundup Workflow</span>
+                  <h2 className="font-serif text-3xl text-brand-black">Create Collection Blog Post</h2>
+                  <p className="mt-2 text-sm text-brand-black/60">Select multiple products and publish one shoppable roundup-style affiliate post.</p>
+                </div>
+                <button onClick={() => setShowCollectionModal(false)} className="btn-outline px-4 py-2 text-xs">Close</button>
+              </div>
+              <form onSubmit={handleCreateCollectionPost} className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                <div className="space-y-4">
+                  <input required value={collectionPost.title} onChange={(e) => setCollectionPost({...collectionPost, title: e.target.value})} placeholder="Blog title, e.g. Clean Girl Perfume Picks" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <input value={collectionPost.slug} onChange={(e) => setCollectionPost({...collectionPost, slug: e.target.value})} placeholder="Suggested slug (optional; AI can fill this)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <select required value={collectionPost.categoryId} onChange={(e) => setCollectionPost({...collectionPost, categoryId: e.target.value})} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm bg-white">
+                    <option value="">Select Category</option>
+                    {categories.map((cat: any) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                  </select>
+                  <textarea required value={collectionPost.intro} onChange={(e) => setCollectionPost({...collectionPost, intro: e.target.value})} placeholder="Intro paragraph" rows={4} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <textarea value={collectionPost.productSections} onChange={(e) => setCollectionPost({...collectionPost, productSections: e.target.value})} placeholder="Product blurbs/sections (AI can fill this; edit before saving)" rows={8} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <textarea required value={collectionPost.conclusion} onChange={(e) => setCollectionPost({...collectionPost, conclusion: e.target.value})} placeholder="Conclusion" rows={3} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <input value={collectionPost.excerpt} onChange={(e) => setCollectionPost({...collectionPost, excerpt: e.target.value})} placeholder="Excerpt (optional)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <input value={collectionPost.featuredImage} onChange={(e) => setCollectionPost({...collectionPost, featuredImage: e.target.value})} placeholder="Featured image URL (optional)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <input value={collectionPost.metaTitle} onChange={(e) => setCollectionPost({...collectionPost, metaTitle: e.target.value})} placeholder="SEO title (optional)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                    <input value={collectionPost.metaDescription} onChange={(e) => setCollectionPost({...collectionPost, metaDescription: e.target.value})} placeholder="Meta description (optional)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  </div>
+                  <textarea value={collectionPost.pinterestDescription} onChange={(e) => setCollectionPost({...collectionPost, pinterestDescription: e.target.value})} placeholder="Pinterest description (optional; for pin copy/reference)" rows={3} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <label className="flex items-center gap-3 rounded-sm border border-brand-blush bg-brand-cream/30 p-3 text-xs font-bold uppercase tracking-widest text-brand-black/70">
+                    <input type="checkbox" checked={collectionPost.isPublished} onChange={(e) => setCollectionPost({...collectionPost, isPublished: e.target.checked})} className="h-4 w-4 accent-brand-gold" />
+                    Publish immediately (leave off to save draft)
+                  </label>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <button type="button" onClick={handleGenerateCollectionDraft} disabled={generatingCollectionDraft || selectedProductIds.length < 2 || !collectionPost.title || !collectionPost.categoryId} className="btn-outline w-full py-3 disabled:opacity-50">
+                      {generatingCollectionDraft ? 'Generating...' : 'Generate AI Draft'}
+                    </button>
+                    <button type="submit" disabled={savingBlogPost || selectedProductIds.length < 2} className="btn-primary w-full py-3 disabled:opacity-50">
+                      {savingBlogPost ? 'Saving...' : 'Save Collection Blog Post'}
+                    </button>
+                  </div>
+                </div>
+                <div className="rounded-sm border border-brand-blush bg-brand-cream/20 p-4">
+                  <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-brand-black/50">Selected Products ({selectedProductIds.length})</p>
+                  <div className="max-h-[520px] space-y-2 overflow-y-auto pr-2">
+                    {allProducts.map((product: any) => (
+                      <label key={product.id} className="flex items-start gap-3 rounded-sm border border-brand-blush bg-white p-3 text-sm text-brand-black">
+                        <input type="checkbox" checked={selectedProductIds.includes(product.id)} onChange={() => toggleCollectionProduct(product)} className="mt-1 h-4 w-4 accent-brand-gold" />
+                        <span>
+                          <span className="block font-bold">{product.name}</span>
+                          <span className="text-[10px] uppercase tracking-widest text-brand-black/40">{product.category?.name}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showManualModal && (
+          <div className="fixed inset-0 bg-brand-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-3xl rounded-sm shadow-xl p-8 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+              <div className="mb-6 flex items-start justify-between gap-4">
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-brand-gold font-bold">Editorial Workflow</span>
+                  <h2 className="font-serif text-3xl text-brand-black">Create Manual Post</h2>
+                </div>
+                <button onClick={() => setShowManualModal(false)} className="btn-outline px-4 py-2 text-xs">Close</button>
+              </div>
+              <form onSubmit={handleCreateManualPost} className="space-y-4">
+                <input required value={manualPost.title} onChange={(e) => setManualPost({...manualPost, title: e.target.value})} placeholder="Title" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                <input value={manualPost.slug} onChange={(e) => setManualPost({...manualPost, slug: e.target.value})} placeholder="Slug (optional; auto-created from title if blank)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                <select required value={manualPost.categoryId} onChange={(e) => setManualPost({...manualPost, categoryId: e.target.value})} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm bg-white">
+                  <option value="">Select Category</option>
+                  {categories.map((cat: any) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                </select>
+                <input value={manualPost.featuredImage} onChange={(e) => setManualPost({...manualPost, featuredImage: e.target.value})} placeholder="Featured image URL" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                <textarea value={manualPost.excerpt} onChange={(e) => setManualPost({...manualPost, excerpt: e.target.value})} placeholder="Excerpt" rows={3} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                <textarea required value={manualPost.content} onChange={(e) => setManualPost({...manualPost, content: e.target.value})} placeholder="Content/body" rows={10} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <input value={manualPost.metaTitle} onChange={(e) => setManualPost({...manualPost, metaTitle: e.target.value})} placeholder="Meta title" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <input value={manualPost.metaDescription} onChange={(e) => setManualPost({...manualPost, metaDescription: e.target.value})} placeholder="Meta description" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                </div>
+                <label className="flex items-center gap-3 rounded-sm border border-brand-blush bg-brand-cream/30 p-3 text-xs font-bold uppercase tracking-widest text-brand-black/70">
+                  <input type="checkbox" checked={manualPost.isPublished} onChange={(e) => setManualPost({...manualPost, isPublished: e.target.checked})} className="h-4 w-4 accent-brand-gold" />
+                  Publish immediately (leave off to save draft)
+                </label>
+                <button type="submit" disabled={savingBlogPost} className="btn-primary w-full py-3 disabled:opacity-50">{savingBlogPost ? 'Saving...' : 'Save Manual Post'}</button>
+              </form>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {stats.map((stat, i) => (
             <div key={i} className="bg-white p-6 rounded-sm border border-brand-blush shadow-sm">
@@ -295,7 +550,6 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Tracker Table */}
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white rounded-sm border border-brand-blush shadow-sm overflow-hidden">
               <div className="p-6 border-b border-brand-blush flex flex-col md:flex-row justify-between items-center gap-4">
@@ -303,11 +557,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2 w-full md:w-auto">
                   <div className="relative flex-grow">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-black/40" />
-                    <input 
-                      type="text" 
-                      placeholder="Search products..." 
-                      className="w-full pl-9 pr-4 py-2 text-xs border border-brand-blush rounded-sm focus:outline-none focus:border-brand-gold"
-                    />
+                    <input type="text" placeholder="Search products..." className="w-full pl-9 pr-4 py-2 text-xs border border-brand-blush rounded-sm focus:outline-none focus:border-brand-gold" />
                   </div>
                 </div>
               </div>
@@ -328,63 +578,20 @@ export default function Dashboard() {
                       <tr key={i} className="hover:bg-brand-cream/20 transition-colors text-sm">
                         <td className="px-6 py-4 font-bold text-brand-black">{p.name}</td>
                         <td className="px-6 py-4 text-xs opacity-60 text-brand-black">{p.category?.name}</td>
-                        <td className="px-6 py-4">
-                          <span className="text-[10px] uppercase tracking-tighter px-2 py-1 rounded-full font-bold bg-green-100 text-green-700">
-                            {p.blogPostStatus}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => handlePublishToggle(p)}
-                            className={`text-[10px] uppercase tracking-tighter px-2 py-1 rounded-full font-bold ${p.published ? 'bg-blue-100 text-blue-700' : 'bg-brand-cream text-brand-black/50'}`}
-                          >
-                            {p.published ? 'Published' : 'Draft'}
-                          </button>
-                        </td>
+                        <td className="px-6 py-4"><span className="text-[10px] uppercase tracking-tighter px-2 py-1 rounded-full font-bold bg-green-100 text-green-700">{p.blogPostStatus}</span></td>
+                        <td className="px-6 py-4"><button onClick={() => handlePublishToggle(p)} className={`text-[10px] uppercase tracking-tighter px-2 py-1 rounded-full font-bold ${p.published ? 'bg-blue-100 text-blue-700' : 'bg-brand-cream text-brand-black/50'}`}>{p.published ? 'Published' : 'Draft'}</button></td>
                         <td className="px-6 py-4 text-xs opacity-60 text-brand-black">{new Date(p.dateAdded).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex flex-col items-end gap-2">
-                            <CreatePinsButton productId={p.id} />
-                            <button
-                              onClick={() => handleCreateBlogPost(p)}
-                              disabled={creatingBlogPostId === p.id}
-                              className="btn-outline py-2 px-3 text-[9px] disabled:opacity-50"
-                            >
-                              {creatingBlogPostId === p.id ? 'Creating...' : p.blogPosts?.[0] ? 'Refresh Blog Post' : 'Create Blog Post'}
-                            </button>
-                            {p.blogPosts?.[0] && (
-                              <button
-                                onClick={() => handleBlogPostPublishToggle(p)}
-                                disabled={updatingBlogPostId === p.blogPosts[0].id}
-                                className="btn-outline py-2 px-3 text-[9px] disabled:opacity-50"
-                              >
-                                {p.blogPosts[0].isPublished ? 'Unpublish Post' : 'Publish Post'}
-                              </button>
-                            )}
-                            <button 
-                              onClick={() => setActiveProduct(p)}
-                              className="text-brand-gold hover:text-brand-black transition-colors"
-                              title="Open content assistant"
-                            >
-                              <FileText size={16} />
-                            </button>
-                          </div>
-                        </td>
+                        <td className="px-6 py-4 text-right"><ProductActions product={p} /></td>
                       </tr>
                     ))}
                     {dashboardData?.lists.readyToPromote.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-sm text-brand-black/40 italic">
-                          No products ready to promote yet.
-                        </td>
-                      </tr>
+                      <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-brand-black/40 italic">No products ready to promote yet.</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
             </div>
-            
-            {/* Needs Content Section */}
+
             <div className="bg-white p-6 rounded-sm border border-brand-blush shadow-sm">
               <div className="flex items-center gap-2 mb-6 text-brand-black">
                 <AlertCircle size={18} className="text-amber-600" />
@@ -396,54 +603,21 @@ export default function Dashboard() {
                     <div className="flex items-center gap-4 text-brand-black">
                       <div>
                         <h4 className="text-sm font-bold">{p.name}</h4>
-                        <p className="text-[10px] uppercase tracking-widest text-brand-black/40 font-bold mt-1">
-                          {p.category?.name} • {p.source || 'Viral Find'} • {p.published ? 'Published' : 'Draft'}
-                        </p>
+                        <p className="text-[10px] uppercase tracking-widest text-brand-black/40 font-bold mt-1">{p.category?.name} • {p.source || 'Viral Find'} • {p.published ? 'Published' : 'Draft'}</p>
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-                      <button
-                        onClick={() => handlePublishToggle(p)}
-                        className="btn-outline py-2 px-4 text-[10px]"
-                      >
-                        {p.published ? 'Unpublish' : 'Publish Product'}
-                      </button>
-                      <CreatePinsButton productId={p.id} className="btn-outline py-2 px-4 text-[10px]" />
-                      <button
-                        onClick={() => handleCreateBlogPost(p)}
-                        disabled={creatingBlogPostId === p.id}
-                        className="btn-outline py-2 px-4 text-[10px] disabled:opacity-50"
-                      >
-                        {creatingBlogPostId === p.id ? 'Creating...' : p.blogPosts?.[0] ? 'Refresh Blog Post' : 'Create Blog Post'}
-                      </button>
-                      {p.blogPosts?.[0] && (
-                        <button
-                          onClick={() => handleBlogPostPublishToggle(p)}
-                          disabled={updatingBlogPostId === p.blogPosts[0].id}
-                          className="btn-outline py-2 px-4 text-[10px] disabled:opacity-50"
-                        >
-                          {p.blogPosts[0].isPublished ? 'Unpublish Post' : 'Publish Post'}
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => setActiveProduct(p)}
-                        className="btn-outline py-2 px-4 text-[10px]"
-                      >
-                        Generate Content
-                      </button>
+                      <button onClick={() => handlePublishToggle(p)} className="btn-outline py-2 px-4 text-[10px]">{p.published ? 'Unpublish' : 'Publish Product'}</button>
+                      <ProductActions product={p} compact />
                     </div>
                   </div>
                 ))}
-                {dashboardData?.lists.needsContent.length === 0 && (
-                  <p className="text-center text-sm text-brand-black/40 italic py-4">All caught up! No products need content.</p>
-                )}
+                {dashboardData?.lists.needsContent.length === 0 && <p className="text-center text-sm text-brand-black/40 italic py-4">All caught up! No products need content.</p>}
               </div>
             </div>
           </div>
 
-          {/* Sidebar / Checklist */}
           <div className="space-y-8">
-            {/* Weekly Checklist */}
             <div className="bg-brand-black text-brand-cream p-8 rounded-sm shadow-lg">
               <div className="flex items-center gap-2 mb-6 text-brand-gold">
                 <CheckSquare size={20} />
@@ -456,18 +630,12 @@ export default function Dashboard() {
                       <span className={task.completed ? 'text-brand-gold' : 'opacity-80'}>{task.task}</span>
                       <span className="text-brand-gold">{task.current} / {task.target}</span>
                     </div>
-                    <div className="h-1 bg-brand-cream/10 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-brand-gold transition-all duration-1000" 
-                        style={{ width: `${Math.min((task.current / task.target) * 100, 100)}%` }}
-                      ></div>
-                    </div>
+                    <div className="h-1 bg-brand-cream/10 rounded-full overflow-hidden"><div className="h-full bg-brand-gold transition-all duration-1000" style={{ width: `${Math.min((task.current / task.target) * 100, 100)}%` }}></div></div>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Content Calendar Suggestion */}
             <div className="bg-white p-6 rounded-sm border border-brand-blush shadow-sm text-brand-black">
               <div className="flex items-center gap-2 mb-4">
                 <Calendar size={18} className="text-brand-gold" />
@@ -487,13 +655,12 @@ export default function Dashboard() {
       </div>
 
       {activeProduct && (
-        <AIAssistant 
-          product={activeProduct} 
+        <AIAssistant
+          product={activeProduct}
           onClose={() => {
             setActiveProduct(null);
-            // Refresh data
             window.location.reload();
-          }} 
+          }}
         />
       )}
     </div>
