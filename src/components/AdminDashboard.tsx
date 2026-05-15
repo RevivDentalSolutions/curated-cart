@@ -14,11 +14,14 @@ import CreatePinsButton from '@/components/CreatePinsButton';
 const emptyCollectionPost = {
   title: '',
   categoryId: '',
+  slug: '',
   intro: '',
+  productSections: '',
   conclusion: '',
   excerpt: '',
   metaTitle: '',
   metaDescription: '',
+  pinterestDescription: '',
   featuredImage: '',
   isPublished: false,
 };
@@ -45,6 +48,7 @@ export default function Dashboard() {
   const [showManualModal, setShowManualModal] = useState(false);
   const [creatingBlogPostId, setCreatingBlogPostId] = useState<string | null>(null);
   const [savingBlogPost, setSavingBlogPost] = useState(false);
+  const [generatingCollectionDraft, setGeneratingCollectionDraft] = useState(false);
   const [updatingBlogPostId, setUpdatingBlogPostId] = useState<string | null>(null);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -202,6 +206,50 @@ export default function Dashboard() {
       alert('Failed to update blog post');
     } finally {
       setUpdatingBlogPostId(null);
+    }
+  };
+
+
+  const handleGenerateCollectionDraft = async () => {
+    if (!collectionPost.title || !collectionPost.categoryId || selectedProductIds.length < 2) {
+      alert('Add a title, choose a category, and select at least two products before generating a draft.');
+      return;
+    }
+
+    setGeneratingCollectionDraft(true);
+    try {
+      const res = await fetch('/api/blog-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'generate-draft',
+          postType: 'collection',
+          title: collectionPost.title,
+          categoryId: collectionPost.categoryId,
+          productIds: selectedProductIds,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCollectionPost((post) => ({
+          ...post,
+          title: data.data.title || post.title,
+          slug: data.data.suggestedSlug || post.slug,
+          intro: data.data.intro || post.intro,
+          productSections: data.data.productSections || post.productSections,
+          conclusion: data.data.conclusion || post.conclusion,
+          metaTitle: data.data.seoTitle || post.metaTitle,
+          metaDescription: data.data.metaDescription || post.metaDescription,
+          pinterestDescription: data.data.pinterestDescription || post.pinterestDescription,
+          excerpt: post.excerpt || data.data.metaDescription || data.data.intro || '',
+        }));
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert('Failed to generate AI draft');
+    } finally {
+      setGeneratingCollectionDraft(false);
     }
   };
 
@@ -406,11 +454,13 @@ export default function Dashboard() {
               <form onSubmit={handleCreateCollectionPost} className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
                 <div className="space-y-4">
                   <input required value={collectionPost.title} onChange={(e) => setCollectionPost({...collectionPost, title: e.target.value})} placeholder="Blog title, e.g. Clean Girl Perfume Picks" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <input value={collectionPost.slug} onChange={(e) => setCollectionPost({...collectionPost, slug: e.target.value})} placeholder="Suggested slug (optional; AI can fill this)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                   <select required value={collectionPost.categoryId} onChange={(e) => setCollectionPost({...collectionPost, categoryId: e.target.value})} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm bg-white">
                     <option value="">Select Category</option>
                     {categories.map((cat: any) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                   </select>
                   <textarea required value={collectionPost.intro} onChange={(e) => setCollectionPost({...collectionPost, intro: e.target.value})} placeholder="Intro paragraph" rows={4} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
+                  <textarea value={collectionPost.productSections} onChange={(e) => setCollectionPost({...collectionPost, productSections: e.target.value})} placeholder="Product blurbs/sections (AI can fill this; edit before saving)" rows={8} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                   <textarea required value={collectionPost.conclusion} onChange={(e) => setCollectionPost({...collectionPost, conclusion: e.target.value})} placeholder="Conclusion" rows={3} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                   <input value={collectionPost.excerpt} onChange={(e) => setCollectionPost({...collectionPost, excerpt: e.target.value})} placeholder="Excerpt (optional)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                   <input value={collectionPost.featuredImage} onChange={(e) => setCollectionPost({...collectionPost, featuredImage: e.target.value})} placeholder="Featured image URL (optional)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
@@ -418,13 +468,19 @@ export default function Dashboard() {
                     <input value={collectionPost.metaTitle} onChange={(e) => setCollectionPost({...collectionPost, metaTitle: e.target.value})} placeholder="SEO title (optional)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                     <input value={collectionPost.metaDescription} onChange={(e) => setCollectionPost({...collectionPost, metaDescription: e.target.value})} placeholder="Meta description (optional)" className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                   </div>
+                  <textarea value={collectionPost.pinterestDescription} onChange={(e) => setCollectionPost({...collectionPost, pinterestDescription: e.target.value})} placeholder="Pinterest description (optional; for pin copy/reference)" rows={3} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                   <label className="flex items-center gap-3 rounded-sm border border-brand-blush bg-brand-cream/30 p-3 text-xs font-bold uppercase tracking-widest text-brand-black/70">
                     <input type="checkbox" checked={collectionPost.isPublished} onChange={(e) => setCollectionPost({...collectionPost, isPublished: e.target.checked})} className="h-4 w-4 accent-brand-gold" />
                     Publish immediately (leave off to save draft)
                   </label>
-                  <button type="submit" disabled={savingBlogPost || selectedProductIds.length < 2} className="btn-primary w-full py-3 disabled:opacity-50">
-                    {savingBlogPost ? 'Saving...' : 'Save Collection Blog Post'}
-                  </button>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <button type="button" onClick={handleGenerateCollectionDraft} disabled={generatingCollectionDraft || selectedProductIds.length < 2 || !collectionPost.title || !collectionPost.categoryId} className="btn-outline w-full py-3 disabled:opacity-50">
+                      {generatingCollectionDraft ? 'Generating...' : 'Generate AI Draft'}
+                    </button>
+                    <button type="submit" disabled={savingBlogPost || selectedProductIds.length < 2} className="btn-primary w-full py-3 disabled:opacity-50">
+                      {savingBlogPost ? 'Saving...' : 'Save Collection Blog Post'}
+                    </button>
+                  </div>
                 </div>
                 <div className="rounded-sm border border-brand-blush bg-brand-cream/20 p-4">
                   <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-brand-black/50">Selected Products ({selectedProductIds.length})</p>

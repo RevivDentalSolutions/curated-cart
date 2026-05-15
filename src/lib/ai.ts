@@ -2,6 +2,28 @@ import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
+type ProductContentInput = {
+  name: string;
+  category?: { name?: string | null } | null;
+  viralTrendNotes?: string | null;
+  contentIdea?: string | null;
+};
+
+type CollectionDraftProductInput = {
+  name: string;
+  category?: { name?: string | null } | null;
+  viralTrendNotes?: string | null;
+  contentIdea?: string | null;
+  source?: string | null;
+};
+
+type CollectionBlogDraftInput = {
+  title: string;
+  categoryName: string;
+  products: CollectionDraftProductInput[];
+  aestheticVibe?: string;
+};
+
 const ContentBundleSchema = z.object({
   blogPostTitle: z.string(),
   blogPostOutline: z.string(),
@@ -15,7 +37,35 @@ const ContentBundleSchema = z.object({
   suggestedHashtags: z.string(),
 });
 
-export async function generateContentBundle(product: any) {
+const CollectionBlogDraftSchema = z.object({
+  title: z.string(),
+  intro: z.string(),
+  productSections: z.array(z.object({
+    heading: z.string(),
+    body: z.string(),
+  })),
+  conclusion: z.string(),
+  seoTitle: z.string(),
+  metaDescription: z.string(),
+  pinterestDescription: z.string(),
+  suggestedSlug: z.string(),
+});
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'blog-post';
+}
+
+function formatProductSections(sections: Array<{ heading: string; body: string }>) {
+  return sections
+    .map((section) => `${section.heading}\n${section.body}`)
+    .join('\n\n');
+}
+
+export async function generateContentBundle(product: ProductContentInput) {
   if (!process.env.OPENAI_API_KEY) {
     // Return mock data if no API key is present
     return {
@@ -51,5 +101,73 @@ export async function generateContentBundle(product: any) {
   } catch (error) {
     console.error('Error generating AI content:', error);
     throw new Error('Failed to generate AI content');
+  }
+}
+
+export async function generateCollectionBlogDraft(input: CollectionBlogDraftInput) {
+  const productContext = input.products.map((product, index) => ({
+    number: index + 1,
+    name: product.name,
+    category: product.category?.name || input.categoryName,
+    notes: product.viralTrendNotes || product.contentIdea || product.source || 'No extra notes provided.',
+  }));
+
+  if (!process.env.OPENAI_API_KEY) {
+    const productSections = productContext.map((product) => ({
+      heading: `${product.number}. ${product.name}`,
+      body: `${product.name} is the kind of pretty-but-practical find that makes an everyday routine feel a little more elevated. It fits the ${input.categoryName.toLowerCase()} mood without feeling fussy, and it is easy to imagine styling, gifting, or reaching for again and again.`,
+    }));
+
+    return {
+      title: input.title,
+      intro: `If your saved folders are full of pretty finds that make everyday life feel more elevated, this ${input.categoryName.toLowerCase()} edit is for you. I pulled together a few favorites with a soft luxury feel, practical uses, and that Pinterest-friendly polish The Curated Cart is all about.`,
+      productSections: formatProductSections(productSections),
+      conclusion: `These finds are simple ways to bring a little more beauty and ease into your day. Choose the pieces that fit your routine, check current pricing and availability, and save this roundup for the next time you want an elevated everyday upgrade.`,
+      seoTitle: `${input.title} | The Curated Cart`,
+      metaDescription: `Shop ${input.title.toLowerCase()} with pretty, practical finds selected for an elevated everyday routine.`,
+      pinterestDescription: `${input.title}: pretty, practical favorites with a soft luxury feel. Save this roundup for elevated everyday Amazon finds and Pinterest-worthy inspiration.`,
+      suggestedSlug: slugify(input.title),
+    };
+  }
+
+  try {
+    const { object } = await generateObject({
+      model: openai('gpt-4o-mini'),
+      schema: CollectionBlogDraftSchema,
+      prompt: `Create a concise, high-quality affiliate roundup blog draft for The Curated Cart.
+
+Brand voice:
+- feminine, aesthetic, soft luxury, practical but elevated
+- conversational and Pinterest-friendly
+- never robotic, never keyword stuffed
+- the feeling is: "pretty finds that make everyday life feel more elevated"
+
+Inputs:
+Collection title: ${input.title}
+Category: ${input.categoryName}
+Overall aesthetic vibe: ${input.aestheticVibe || 'soft neutral luxury, pretty practical everyday finds'}
+Selected products: ${JSON.stringify(productContext, null, 2)}
+
+Return:
+- title: keep or lightly improve the collection title
+- intro: one polished paragraph
+- productSections: one entry per selected product in the same order, each with a short heading and 1-2 short paragraphs of natural lifestyle-oriented affiliate copy
+- conclusion: one polished paragraph
+- seoTitle: click-worthy but natural, under 60 characters when possible
+- metaDescription: natural search snippet, under 155 characters when possible
+- pinterestDescription: save-worthy Pinterest description with no hashtag stuffing
+- suggestedSlug: lowercase URL slug like clean-girl-perfume-picks or neutral-kitchen-finds
+
+Write for Pinterest clicks, SEO readability, Amazon affiliate conversion, and a calm elevated shopping experience.`,
+    });
+
+    return {
+      ...object,
+      productSections: formatProductSections(object.productSections),
+      suggestedSlug: slugify(object.suggestedSlug || object.title || input.title),
+    };
+  } catch (error) {
+    console.error('Error generating collection blog draft:', error);
+    throw new Error('Failed to generate collection blog draft');
   }
 }

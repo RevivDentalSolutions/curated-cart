@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
+import { generateCollectionBlogDraft } from '@/lib/ai';
 
 function slugify(value: string) {
   return value
@@ -33,13 +34,18 @@ function nullableString(value: unknown) {
   return cleaned.length > 0 ? cleaned : null;
 }
 
-function buildCollectionContent(intro: string, products: Array<{ name: string; viralTrendNotes: string | null }>, conclusion: string) {
-  const sections = products.map((product, index) => {
+function buildCollectionContent(
+  intro: string,
+  products: Array<{ name: string; viralTrendNotes: string | null }>,
+  conclusion: string,
+  productSections?: string | null
+) {
+  const sections = productSections || products.map((product, index) => {
     const note = product.viralTrendNotes || 'A polished, practical find selected for its elevated look and everyday usefulness.';
     return `Pick ${index + 1}: ${product.name}\n${note}`;
-  });
+  }).join('\n\n');
 
-  return [intro, ...sections, conclusion].filter(Boolean).join('\n\n');
+  return [intro, sections, conclusion].filter(Boolean).join('\n\n');
 }
 
 function revalidateBlogPages(slug?: string) {
@@ -66,9 +72,48 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Title and category are required.' }, { status: 400 });
     }
 
-    const category = await prisma.category.findUnique({ where: { id: categoryId }, select: { id: true } });
+    const category = await prisma.category.findUnique({ where: { id: categoryId }, select: { id: true, name: true } });
     if (!category) {
       return NextResponse.json({ error: 'Choose a valid category before saving this post.' }, { status: 400 });
+    }
+
+    if (body?.action === 'generate-draft') {
+      const productIds: string[] = Array.isArray(body?.productIds)
+        ? body.productIds.filter((id: unknown): id is string => typeof id === 'string' && id.trim().length > 0)
+        : [];
+
+      if (productIds.length < 2) {
+        return NextResponse.json({ error: 'Choose at least two products before generating a collection draft.' }, { status: 400 });
+      }
+
+      const products = await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: {
+          id: true,
+          name: true,
+          viralTrendNotes: true,
+          contentIdea: true,
+          source: true,
+          category: { select: { name: true } },
+        },
+      });
+
+      if (products.length !== productIds.length) {
+        return NextResponse.json({ error: 'One or more selected products could not be found.' }, { status: 400 });
+      }
+
+      const orderedProducts = productIds
+        .map((id) => products.find((product) => product.id === id))
+        .filter((product): product is (typeof products)[number] => Boolean(product));
+
+      const draft = await generateCollectionBlogDraft({
+        title,
+        categoryName: category.name,
+        products: orderedProducts,
+        aestheticVibe: cleanString(body?.aestheticVibe) || 'soft luxury, feminine, practical everyday finds, Pinterest-friendly',
+      });
+
+      return NextResponse.json({ success: true, data: draft });
     }
 
     const requestedSlug = nullableString(body?.slug);
@@ -120,6 +165,7 @@ export async function POST(req: NextRequest) {
     }
 
     const intro = cleanString(body?.intro);
+    const productSections = nullableString(body?.productSections);
     const conclusion = cleanString(body?.conclusion);
     if (!intro || !conclusion) {
       return NextResponse.json({ error: 'Collection posts need an intro and conclusion.' }, { status: 400 });
@@ -136,7 +182,7 @@ export async function POST(req: NextRequest) {
         categoryId,
         featuredImage: featuredImage || orderedProducts.find((product) => product.imageUrl)?.imageUrl || null,
         excerpt,
-        content: buildCollectionContent(intro, orderedProducts, conclusion),
+        content: buildCollectionContent(intro, orderedProducts, conclusion, productSections),
         metaTitle,
         metaDescription,
         isPublished,
