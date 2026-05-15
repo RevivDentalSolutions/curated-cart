@@ -1,18 +1,19 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
   const categories = await prisma.category.findMany();
   
-  const homeDecor = categories.find(c => c.name === 'Home Decor');
-  const fashion = categories.find(c => c.name === 'Fashion Finds');
-  const skincare = categories.find(c => c.name === 'Skincare');
+  const home = categories.find(c => c.name === 'Home');
+  const fashion = categories.find(c => c.name === 'Fashion');
+  const beauty = categories.find(c => c.name === 'Beauty');
 
-  if (homeDecor) {
+  if (home) {
     await prisma.product.create({
       data: {
         name: 'Arched Full Length Mirror with Gold Frame',
-        categoryId: homeDecor.id,
+        categoryId: home.id,
         amazonLink: 'https://amazon.com/dp/B08YRP9D76',
         price: 129.99,
         source: 'TikTok Viral',
@@ -38,11 +39,11 @@ async function main() {
     });
   }
 
-  if (skincare) {
+  if (beauty) {
     await prisma.product.create({
       data: {
         name: 'Facial Ice Roller for De-puffing',
-        categoryId: skincare.id,
+        categoryId: beauty.id,
         amazonLink: 'https://amazon.com/dp/B07GZV6K9H',
         price: 18.95,
         source: 'Amazon Favorites',

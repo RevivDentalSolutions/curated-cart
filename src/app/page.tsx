@@ -3,12 +3,19 @@ import { ArrowRight, Heart } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
 import ProductImage from '@/components/ProductImage';
+import { buildCategoryCards, getCategoryImage } from '@/lib/categories';
 
 export default async function Home() {
   await connection();
-  const categories = await prisma.category.findMany({
-    take: 6,
+  const categorySources = await prisma.category.findMany({
+    include: {
+      products: {
+        where: { published: true },
+        select: { id: true },
+      },
+    },
   });
+  const categories = buildCategoryCards(categorySources);
 
   const featuredFinds = await prisma.product.findMany({
     where: {
@@ -35,19 +42,6 @@ export default async function Home() {
       createdAt: 'desc'
     }
   });
-
-  // Fallback images if not provided
-  const getCategoryImage = (name: string) => {
-    const images: {[key: string]: string} = {
-      'Home Decor': 'https://images.unsplash.com/photo-1616489953149-75517454e9c3?auto=format&fit=crop&q=80&w=400',
-      'Fashion Finds': 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&q=80&w=400',
-      'Skincare': 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=400',
-      'Beauty Tools': 'https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?auto=format&fit=crop&q=80&w=400',
-      'Mom Life Favorites': 'https://images.unsplash.com/photo-1484981138541-3d074aa97716?auto=format&fit=crop&q=80&w=400',
-      'Under $25 Finds': 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&q=80&w=400',
-    };
-    return images[name] || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=400';
-  };
 
   return (
     <div className="flex flex-col gap-20 pb-20">
@@ -118,12 +112,17 @@ export default async function Home() {
             <div className="h-0.5 w-20 bg-brand-gold mx-auto"></div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {categories.map((cat) => (
-              <Link href={`/categories/${cat.id}`} key={cat.id} className="group relative aspect-square overflow-hidden bg-brand-cream rounded-sm">
-                <img src={getCategoryImage(cat.name)} alt={cat.name} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700 opacity-80" />
-                <div className="absolute inset-0 bg-brand-black/20 group-hover:bg-brand-black/40 transition-colors flex items-center justify-center p-4">
-                  <span className="text-white text-xs md:text-sm uppercase tracking-widest font-bold text-center border-b border-white/0 group-hover:border-white/100 transition-all">{cat.name}</span>
+              <Link href={cat.href} key={cat.slug} className="group relative aspect-[4/5] overflow-hidden bg-brand-cream rounded-sm shadow-sm">
+                <ProductImage src={cat.image} alt={`${cat.name} curated category`} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700 opacity-85" />
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-black/70 via-brand-black/20 to-transparent transition-colors group-hover:from-brand-black/80 flex items-end p-4">
+                  <div>
+                    <span className="block text-[9px] uppercase tracking-[0.2em] font-bold text-brand-gold mb-2">
+                      {cat.itemCount} {cat.itemCount === 1 ? 'item' : 'items'}
+                    </span>
+                    <span className="text-white text-xs md:text-sm uppercase tracking-widest font-bold border-b border-white/0 group-hover:border-white/100 transition-all">{cat.name}</span>
+                  </div>
                 </div>
               </Link>
             ))}
