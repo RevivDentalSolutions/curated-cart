@@ -202,7 +202,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         <section className="mt-20 border-y border-brand-blush py-12 text-center">
           <div className="mx-auto mb-6 h-24 w-24 overflow-hidden rounded-full border-4 border-white bg-brand-nude shadow-sm">
             <img
-              src="https://getrevivedental.squarespace.com/config/asset-library/file-details/7ba5d435-e3df-4ad1-8aed-1cfef98fc028"
+              src="https://res.cloudinary.com/dt7s4c04l/image/upload/v1778858976/Curated_edpgwe.png"
               alt="Jessica, curator of The Curated Cart"
               className="h-full w-full object-cover"
             />
