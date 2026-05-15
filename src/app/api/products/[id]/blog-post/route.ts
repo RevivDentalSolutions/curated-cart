@@ -83,7 +83,7 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
-    const isPublished = typeof body?.isPublished === 'boolean' ? body.isPublished : true;
+    const isPublished = typeof body?.isPublished === 'boolean' ? body.isPublished : false;
     const product = await loadProduct(id);
 
     if (!product) {
