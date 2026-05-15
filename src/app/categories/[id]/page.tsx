@@ -2,35 +2,68 @@ import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import ProductImage from '@/components/ProductImage';
+import {
+  categoryNamesForSlug,
+  getCategoryCollection,
+  getCategoryImage,
+  getDisplayCategoryName,
+} from '@/lib/categories';
 
 export default async function CategoryPage({ params }: { params: Promise<{ id: string }> }) {
   await connection();
   const { id } = await params;
-  const category = await prisma.category.findUnique({
-    where: { id },
-    include: {
-      products: {
-        where: { published: true },
-        orderBy: { dateAdded: 'desc' }
-      }
-    }
-  });
+  const collection = getCategoryCollection(id);
+
+  const category = collection
+    ? await prisma.category.findFirst({
+        where: { name: { in: categoryNamesForSlug(collection.slug) } },
+      })
+    : await prisma.category.findUnique({
+        where: { id },
+      });
 
   if (!category) {
+    if (collection) {
+      return (
+        <div className="container mx-auto px-4 py-16">
+          <CategoryHero
+            name={collection.name}
+            image={collection.image}
+            itemCount={0}
+          />
+          <EmptyCategory name={collection.name} />
+        </div>
+      );
+    }
+
     notFound();
   }
 
+  const displayCollection = getCategoryCollection(category.name);
+  const displayName = displayCollection?.name || getDisplayCategoryName(category.name);
+  const categoryNames = displayCollection ? categoryNamesForSlug(displayCollection.slug) : [category.name];
+
+  const products = await prisma.product.findMany({
+    where: {
+      published: true,
+      category: {
+        name: { in: categoryNames },
+      },
+    },
+    orderBy: { dateAdded: 'desc' },
+  });
+
   return (
     <div className="container mx-auto px-4 py-16">
-      <div className="text-center mb-16">
-        <span className="text-brand-gold uppercase tracking-[0.3em] text-[10px] font-bold">Curated Category</span>
-        <h1 className="text-5xl font-serif mt-4 mb-6 tracking-tighter text-brand-black">{category.name}</h1>
-        <div className="h-0.5 w-20 bg-brand-gold mx-auto mb-6"></div>
-      </div>
+      <CategoryHero
+        name={displayName}
+        image={displayCollection?.image || getCategoryImage(displayName)}
+        itemCount={products.length}
+      />
 
-      {category.products.length > 0 ? (
+      {products.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {category.products.map((item) => (
+          {products.map((item) => (
             <div key={item.id} className="luxury-card group overflow-hidden">
               <div className="relative aspect-[4/5] overflow-hidden bg-brand-cream">
                 <ProductImage
@@ -52,10 +85,33 @@ export default async function CategoryPage({ params }: { params: Promise<{ id: s
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 bg-brand-cream/30 rounded-sm italic text-brand-black/40">
-          We are currently hand-picking the best {category.name} for you.
-        </div>
+        <EmptyCategory name={displayName} />
       )}
+    </div>
+  );
+}
+
+function CategoryHero({ name, image, itemCount }: { name: string; image: string; itemCount: number }) {
+  return (
+    <div className="relative mb-16 overflow-hidden rounded-sm bg-brand-cream px-6 py-20 text-center shadow-sm">
+      <ProductImage src={image} alt={`${name} category mood`} className="absolute inset-0 h-full w-full object-cover opacity-25" />
+      <div className="absolute inset-0 bg-gradient-to-r from-brand-cream via-brand-cream/90 to-brand-blush/70"></div>
+      <div className="relative mx-auto max-w-3xl">
+        <span className="text-brand-gold uppercase tracking-[0.3em] text-[10px] font-bold">Curated Category</span>
+        <h1 className="text-5xl font-serif mt-4 mb-6 tracking-tighter text-brand-black">{name}</h1>
+        <div className="h-0.5 w-20 bg-brand-gold mx-auto mb-6"></div>
+        <p className="text-sm uppercase tracking-[0.25em] text-brand-black/50">
+          {itemCount} {itemCount === 1 ? 'curated item' : 'curated items'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function EmptyCategory({ name }: { name: string }) {
+  return (
+    <div className="text-center py-20 bg-brand-cream/30 rounded-sm italic text-brand-black/40">
+      We are currently hand-picking the best {name} finds for you.
     </div>
   );
 }
