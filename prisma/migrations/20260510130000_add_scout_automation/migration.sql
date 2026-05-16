@@ -1,8 +1,8 @@
 -- AlterTable
-ALTER TABLE "ProductLead" ADD COLUMN "imageUrl" TEXT;
+ALTER TABLE "ProductLead" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
 
 -- CreateTable
-CREATE TABLE "ScoutAutomationConfig" (
+CREATE TABLE IF NOT EXISTS "ScoutAutomationConfig" (
     "id" TEXT NOT NULL DEFAULT 'default',
     "autoImportEnabled" BOOLEAN NOT NULL DEFAULT false,
     "autoApproveHighScoringLeads" BOOLEAN NOT NULL DEFAULT false,
@@ -21,4 +21,4 @@ CREATE TABLE "ScoutAutomationConfig" (
 );
 
 -- CreateIndex
-CREATE INDEX "ProductLead_sourceUrl_idx" ON "ProductLead"("sourceUrl");
+CREATE INDEX IF NOT EXISTS "ProductLead_sourceUrl_idx" ON "ProductLead"("sourceUrl");

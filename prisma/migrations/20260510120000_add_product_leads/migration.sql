@@ -1,8 +1,14 @@
 -- CreateEnum
-CREATE TYPE "ProductLeadStatus" AS ENUM ('New', 'Approved', 'Rejected');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ProductLeadStatus') THEN
+    CREATE TYPE "ProductLeadStatus" AS ENUM ('New', 'Approved', 'Rejected');
+  END IF;
+END
+$$;
 
 -- CreateTable
-CREATE TABLE "ProductLead" (
+CREATE TABLE IF NOT EXISTS "ProductLead" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "source" TEXT NOT NULL,
@@ -19,4 +25,4 @@ CREATE TABLE "ProductLead" (
 );
 
 -- CreateIndex
-CREATE INDEX "ProductLead_status_createdAt_idx" ON "ProductLead"("status", "createdAt");
+CREATE INDEX IF NOT EXISTS "ProductLead_status_createdAt_idx" ON "ProductLead"("status", "createdAt");
