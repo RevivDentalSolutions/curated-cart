@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import BlogArticleHeader from '@/components/BlogArticleHeader';
 import ProductImage from '@/components/ProductImage';
+import { BlogEditorSection, normalizeEditorSections } from '@/lib/blog-editor';
 
 type BlogProduct = NonNullable<Awaited<ReturnType<typeof getPost>>>['products'][number];
 type ProductModule =
@@ -134,7 +135,7 @@ function ProductImageFrame({
   );
 }
 
-function ProductDetails({ product, index, compact = false }: { product: BlogProduct; index: number; compact?: boolean }) {
+function ProductDetails({ product, index, compact = false, ctaText = 'Shop the Find' }: { product: BlogProduct; index: number; compact?: boolean; ctaText?: string }) {
   return (
     <div className="flex h-full flex-col">
       <div className="mb-5 flex items-center justify-between gap-4">
@@ -180,7 +181,7 @@ function ProductDetails({ product, index, compact = false }: { product: BlogProd
         rel="noopener noreferrer"
         className="btn-primary mt-auto inline-flex items-center justify-center gap-2 rounded-full px-7 py-3 text-center"
       >
-        Shop the Find <ShoppingCart size={14} />
+        {ctaText} <ShoppingCart size={14} />
       </Link>
     </div>
   );
@@ -290,7 +291,7 @@ function FloatingCollageSection({ products, startIndex }: { products: BlogProduc
             A floating collage of little luxuries.
           </h2>
           <p className="mt-6 text-sm leading-7 text-brand-black/60 md:text-base md:leading-8">
-            This section is designed to feel saved from a Pinterest board: layered images, soft movement, and products that create a whole mood together.
+            A soft-focus arrangement of beauty finds selected to make the everyday routine feel calmer, prettier, and more intentional.
           </p>
         </div>
         <div className="grid auto-rows-[minmax(160px,auto)] grid-cols-2 gap-4 md:gap-6">
@@ -372,6 +373,117 @@ function MasonryProductGrid({ products, startIndex }: { products: BlogProduct[];
   );
 }
 
+
+function EditedSectionRenderer({
+  section,
+  products,
+  defaultCtaText,
+}: {
+  section: BlogEditorSection;
+  products: BlogProduct[];
+  defaultCtaText: string;
+}) {
+  const sectionProducts = products.filter((product) => section.productIds?.includes(product.id));
+  const imageUrls = section.imageUrls || [];
+  const ctaText = section.ctaText || defaultCtaText;
+
+  if (section.type === 'quote') {
+    return (
+      <aside className="not-prose relative mx-auto my-16 max-w-4xl overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#fffaf6_0%,#fdf2f0_56%,#f5ebe0_100%)] px-7 py-10 text-center shadow-[0_24px_70px_rgba(197,160,89,0.13)] md:my-24 md:px-14 md:py-14">
+        <Sparkles className="mx-auto mb-5 text-brand-gold" size={20} />
+        <p className="mx-auto max-w-2xl font-serif text-3xl leading-tight text-brand-black md:text-5xl md:leading-[1.05]">
+          &ldquo;{section.quote}&rdquo;
+        </p>
+      </aside>
+    );
+  }
+
+  if (section.type === 'collage') {
+    return (
+      <section className="not-prose my-16 overflow-hidden rounded-[2.5rem] bg-[linear-gradient(160deg,#fdf2f0_0%,#fcfaf7_52%,#f5ebe0_100%)] p-6 md:my-24 md:p-10 lg:p-12">
+        <div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-brand-gold">{section.eyebrow || section.label}</p>
+            <h2 className="mt-4 font-serif text-4xl leading-[0.98] text-brand-black md:text-6xl">{section.heading}</h2>
+            {section.body && <div className="mt-6 text-sm leading-7 text-brand-black/60 md:text-base md:leading-8" dangerouslySetInnerHTML={{ __html: section.body }} />}
+          </div>
+          <div className="grid grid-cols-2 gap-4 md:gap-6">
+            {imageUrls.map((url, index) => (
+              <div key={`${url}-${index}`} className={`rounded-[2rem] border border-white/80 bg-white/65 p-3 shadow-[0_24px_60px_rgba(197,160,89,0.12)] backdrop-blur ${index === 0 ? 'col-span-2 md:col-span-1 md:row-span-2' : ''}`}>
+                <ProductImage src={url} alt={section.heading || section.label} className={`w-full rounded-[1.5rem] object-cover shadow-sm transition-transform duration-700 hover:scale-[1.03] ${index === 0 ? 'aspect-[4/5] h-full' : 'aspect-[5/4]'}`} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (section.type === 'productGrid') {
+    return (
+      <section className="not-prose my-16 rounded-[2.25rem] bg-white/55 p-5 shadow-[0_20px_70px_rgba(197,160,89,0.1)] ring-1 ring-brand-blush/80 md:my-24 md:p-9">
+        <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-brand-gold">{section.eyebrow || section.label}</p>
+            <h2 className="mt-3 font-serif text-4xl leading-none text-brand-black md:text-6xl">{section.heading}</h2>
+          </div>
+          {section.body && <div className="max-w-sm text-sm leading-7 text-brand-black/55" dangerouslySetInnerHTML={{ __html: section.body }} />}
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 md:gap-8">
+          {sectionProducts.map((product, offset) => (
+            <article key={product.id} className={offset % 2 === 1 ? 'md:pt-16' : ''}>
+              <ProductImageFrame product={{ ...product, imageUrl: imageUrls[offset] || product.imageUrl }} imageClassName="aspect-[4/5]" />
+              <div className="mt-8 rounded-[1.75rem] bg-brand-cream/80 p-6">
+                <ProductDetails product={product} index={offset} compact ctaText={ctaText} />
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (section.type === 'verdict' || section.type === 'pinterestCallout') {
+    return (
+      <section className="not-prose mx-auto my-16 max-w-4xl rounded-[2rem] border border-white/80 bg-white/65 p-8 text-center shadow-[0_24px_70px_rgba(197,160,89,0.12)] backdrop-blur md:my-24 md:p-12">
+        <span className="text-[10px] font-bold uppercase tracking-[0.32em] text-brand-gold">{section.eyebrow || section.label}</span>
+        <h3 className="mt-4 text-3xl leading-tight text-brand-black md:text-5xl">{section.heading}</h3>
+        {section.body && <div className="mx-auto mt-5 max-w-2xl text-sm italic leading-7 text-brand-black/70 md:text-base md:leading-8" dangerouslySetInnerHTML={{ __html: section.body }} />}
+      </section>
+    );
+  }
+
+  const spotlightProduct = sectionProducts[0];
+  return (
+    <section className="not-prose my-16 grid items-center gap-8 md:my-24 md:grid-cols-2 md:gap-12">
+      {imageUrls[0] && (
+        spotlightProduct || products[0] ? (
+          <ProductImageFrame
+            product={{ ...(spotlightProduct || products[0]), name: spotlightProduct?.name || section.heading || section.label, imageUrl: imageUrls[0] }}
+            className={section.layout === 'image-right' ? 'md:order-2 md:-mr-8' : 'md:-ml-8'}
+            imageClassName="aspect-[3/4] md:aspect-[4/5]"
+          />
+        ) : (
+          <div className={`group relative ${section.layout === 'image-right' ? 'md:order-2 md:-mr-8' : 'md:-ml-8'}`}>
+            <div className="absolute -inset-3 rounded-[2rem] bg-white/45 shadow-[0_24px_70px_rgba(197,160,89,0.16)] backdrop-blur-xl md:-inset-5" />
+            <ProductImage src={imageUrls[0]} alt={section.heading || section.label} className="relative aspect-[3/4] w-full rounded-[1.75rem] object-cover shadow-[0_28px_60px_rgba(26,26,26,0.13)] md:aspect-[4/5]" />
+          </div>
+        )
+      )}
+      <div className="rounded-[2rem] border border-white/80 bg-white/70 p-6 shadow-[0_24px_70px_rgba(197,160,89,0.11)] backdrop-blur md:p-9">
+        <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-brand-gold">{section.eyebrow || section.label}</p>
+        <h2 className="mt-3 font-serif text-4xl leading-tight text-brand-black md:text-5xl">{section.heading}</h2>
+        {section.body && <div className="mt-5 text-sm leading-7 text-brand-black/65 md:text-base md:leading-8" dangerouslySetInnerHTML={{ __html: section.body }} />}
+        {spotlightProduct && (
+          <Link href={spotlightProduct.amazonLink || spotlightProduct.affiliateLink || '#'} target="_blank" rel="noopener noreferrer" className="btn-primary mt-7 inline-flex items-center justify-center gap-2 rounded-full px-7 py-3 text-center">
+            {ctaText} <ShoppingCart size={14} />
+          </Link>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function ProductModuleRenderer({ module, moduleIndex }: { module: ProductModule; moduleIndex: number }) {
   const startingIndexByType = {
     hero: 0,
@@ -416,6 +528,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
   }
 
   const paragraphs = getParagraphs(post.content);
+  const editedSections = normalizeEditorSections(post.editorSections);
   const productModules = buildProductModules(post.products);
   const readingTime = calculateReadingTime(
     [post.title, post.excerpt, post.metaDescription, post.content, ...post.products.map((product) => product.viralTrendNotes)].join(' ')
@@ -428,6 +541,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         title={post.title}
         publishedAt={post.createdAt}
         readingTime={readingTime}
+        affiliateDisclosure={post.affiliateDisclosure}
       />
 
       <div className="container mx-auto max-w-6xl px-4 pt-12 md:pt-16">
@@ -443,6 +557,12 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
           </div>
         )}
         <div className="prose prose-brand max-w-none text-brand-black/80">
+          {post.subtitle && (
+            <p className="mx-auto max-w-3xl text-center text-2xl font-light leading-9 text-brand-black/70 md:text-4xl md:leading-[1.2]">
+              {post.subtitle}
+            </p>
+          )}
+
           {(post.excerpt || post.metaDescription) && (
             <p className="mx-auto max-w-3xl text-center text-2xl font-light italic leading-10 text-brand-black/70 md:text-3xl md:leading-[1.45]">
               {post.excerpt || post.metaDescription}
@@ -466,7 +586,18 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
             </figure>
           )}
 
-          {paragraphs.length > 0 ? (
+          {editedSections.length > 0 ? (
+            <div>
+              {editedSections.map((section) => (
+                <EditedSectionRenderer
+                  key={section.id}
+                  section={section}
+                  products={post.products}
+                  defaultCtaText={post.ctaText || 'Shop the Find'}
+                />
+              ))}
+            </div>
+          ) : paragraphs.length > 0 ? (
             <div className="space-y-8 text-[1.05rem] leading-8 text-brand-black/75 md:text-lg md:leading-9">
               {paragraphs.map((paragraph, paragraphIndex) => (
                 <div key={`${paragraph.slice(0, 24)}-${paragraphIndex}`}>
@@ -489,13 +620,15 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
             )
           )}
 
-          <div className="not-prose mx-auto my-16 max-w-4xl rounded-[2rem] border border-white/80 bg-white/65 p-8 text-center shadow-[0_24px_70px_rgba(197,160,89,0.12)] backdrop-blur md:my-24 md:p-12">
-            <span className="text-[10px] font-bold uppercase tracking-[0.32em] text-brand-gold">Worth it?</span>
-            <h3 className="mt-4 text-3xl leading-tight text-brand-black md:text-5xl">The quiet-luxury verdict</h3>
-            <p className="mx-auto mt-5 max-w-2xl text-sm italic leading-7 text-brand-black/70 md:text-base md:leading-8">
-              &ldquo;If you&rsquo;re looking for an easy way to elevate your lifestyle without a major splurge, these pieces are selected for that pretty-meets-practical sweet spot.&rdquo;
-            </p>
-          </div>
+          {editedSections.length === 0 && (
+            <div className="not-prose mx-auto my-16 max-w-4xl rounded-[2rem] border border-white/80 bg-white/65 p-8 text-center shadow-[0_24px_70px_rgba(197,160,89,0.12)] backdrop-blur md:my-24 md:p-12">
+              <span className="text-[10px] font-bold uppercase tracking-[0.32em] text-brand-gold">{post.labelWorthIt || 'Worth it?'}</span>
+              <h3 className="mt-4 text-3xl leading-tight text-brand-black md:text-5xl">The quiet-luxury verdict</h3>
+              <p className="mx-auto mt-5 max-w-2xl text-sm italic leading-7 text-brand-black/70 md:text-base md:leading-8">
+                &ldquo;If you&rsquo;re looking for an easy way to elevate your lifestyle without a major splurge, these pieces are selected for that pretty-meets-practical sweet spot.&rdquo;
+              </p>
+            </div>
+          )}
         </div>
 
         <section className="mt-20 rounded-[2.25rem] border border-white/80 bg-[linear-gradient(135deg,#fff_0%,#fdf2f0_100%)] px-6 py-12 text-center shadow-[0_24px_70px_rgba(197,160,89,0.11)] md:px-10">

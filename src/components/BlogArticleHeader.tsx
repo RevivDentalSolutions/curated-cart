@@ -6,6 +6,7 @@ type BlogArticleHeaderProps = {
   title: string;
   publishedAt: Date;
   readingTime: string;
+  affiliateDisclosure?: string | null;
 };
 
 const formatPublishedDate = (date: Date) =>
@@ -20,6 +21,7 @@ export default function BlogArticleHeader({
   title,
   publishedAt,
   readingTime,
+  affiliateDisclosure,
 }: BlogArticleHeaderProps) {
   return (
     <header className="relative overflow-hidden border-b border-brand-blush bg-[linear-gradient(135deg,#fcfaf7_0%,#fdf2f0_46%,#f5ebe0_100%)]">
@@ -49,7 +51,7 @@ export default function BlogArticleHeader({
         </div>
 
         <p className="mx-auto mt-8 max-w-2xl border-y border-white/70 py-4 text-xs font-light leading-relaxed text-brand-black/55 md:text-sm">
-          Affiliate disclosure: This post may contain affiliate links. As an Amazon Associate, I earn from qualifying purchases at no extra cost to you.
+          {affiliateDisclosure || 'Affiliate disclosure: This post may contain affiliate links. As an Amazon Associate, I earn from qualifying purchases at no extra cost to you.'}
         </p>
       </div>
     </header>
