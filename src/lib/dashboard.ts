@@ -27,6 +27,12 @@ export async function getDashboardStats() {
     orderBy: { dateAdded: 'desc' },
   });
 
+  const recentBlogPosts = await prisma.blogPost.findMany({
+    include: { category: true, products: { select: { id: true } } },
+    take: 6,
+    orderBy: { updatedAt: 'desc' },
+  });
+
   return {
     stats: {
       needsContent: needsContentCount,
@@ -36,6 +42,7 @@ export async function getDashboardStats() {
     lists: {
       needsContent: productsNeedsContent,
       readyToPromote: productsReadyToPromote,
+      recentBlogPosts,
     }
   };
 }

@@ -140,6 +140,7 @@ Brand voice:
 - feminine, aesthetic, soft luxury, practical but elevated
 - conversational and Pinterest-friendly
 - never robotic, never keyword stuffed
+- never include developer-facing layout notes, placeholders, or phrases like "this section is designed"
 - the feeling is: "pretty finds that make everyday life feel more elevated"
 
 Inputs:
@@ -158,7 +159,7 @@ Return:
 - pinterestDescription: save-worthy Pinterest description with no hashtag stuffing
 - suggestedSlug: lowercase URL slug like clean-girl-perfume-picks or neutral-kitchen-finds
 
-Write for Pinterest clicks, SEO readability, Amazon affiliate conversion, and a calm elevated shopping experience.`,
+Write polished editorial copy only. Do not mention templates, sections, layouts, modules, or implementation notes. Write for Pinterest clicks, SEO readability, Amazon affiliate conversion, and a calm elevated shopping experience.`,
     });
 
     return {

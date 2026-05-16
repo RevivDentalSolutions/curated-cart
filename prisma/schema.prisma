@@ -90,21 +90,31 @@ model ScoutAutomationConfig {
 }
 
 model BlogPost {
-  id              String         @id @default(cuid())
-  title           String
-  content         String?
-  excerpt         String?
-  slug            String         @unique
-  categoryId      String
-  metaTitle       String?
-  metaDescription String?
-  featuredImage   String?
-  isPublished     Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  category        Category       @relation(fields: [categoryId], references: [id])
-  products        Product[]      @relation("ProductBlogPosts")
-  pinterestPins   PinterestPin[]
+  id                  String         @id @default(cuid())
+  title               String
+  subtitle            String?
+  content             String?
+  excerpt             String?
+  slug                String         @unique
+  categoryId          String
+  authorName          String?        @default("Jessica")
+  affiliateDisclosure String?        @default("This post may contain affiliate links. As an Amazon Associate, I earn from qualifying purchases at no extra cost to you.")
+  ctaText             String?        @default("Shop the Find")
+  labelFavoritePick   String?        @default("Favorite Pick")
+  labelVanityTray     String?        @default("The Vanity Tray")
+  labelWorthIt        String?        @default("Worth It?")
+  metaTitle           String?
+  metaDescription     String?
+  featuredImage       String?
+  editorSections      Json?
+  imageLibrary        Json?
+  scheduledAt         DateTime?
+  isPublished         Boolean        @default(false)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  category            Category       @relation(fields: [categoryId], references: [id])
+  products            Product[]      @relation("ProductBlogPosts")
+  pinterestPins       PinterestPin[]
 }
 
 model ContentBundle {

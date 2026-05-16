@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Plus, Search, TrendingUp, FileText,
   DollarSign, Calendar, CheckSquare,
-  Clock, AlertCircle, Loader2, Layers, Edit3
+  Clock, AlertCircle, Loader2, Layers, Edit3, BookOpen
 } from 'lucide-react';
 import AIAssistant from '@/components/AIAssistant';
 import CreatePinsButton from '@/components/CreatePinsButton';
@@ -253,6 +253,41 @@ export default function Dashboard() {
     }
   };
 
+  const handleGenerateAndOpenEditor = async () => {
+    if (!collectionPost.title || !collectionPost.categoryId || selectedProductIds.length < 2) {
+      alert('Add a title, choose a category, and select at least two products before generating an editable draft.');
+      return;
+    }
+
+    setGeneratingCollectionDraft(true);
+    try {
+      const res = await fetch('/api/blog-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'generate-draft',
+          saveDraft: true,
+          postType: 'collection',
+          title: collectionPost.title,
+          slug: collectionPost.slug,
+          categoryId: collectionPost.categoryId,
+          featuredImage: collectionPost.featuredImage,
+          productIds: selectedProductIds,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.data.blogPostId) {
+        window.location.assign(`/dashboard/blog/${data.data.blogPostId}/edit`);
+      } else {
+        alert(data.error || 'Failed to create editable draft');
+      }
+    } catch {
+      alert('Failed to generate editable draft');
+    } finally {
+      setGeneratingCollectionDraft(false);
+    }
+  };
+
   const handleCreateCollectionPost = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingBlogPost(true);
@@ -333,6 +368,14 @@ export default function Dashboard() {
       >
         {creatingBlogPostId === product.id ? 'Creating...' : product.blogPosts?.[0] ? 'Refresh Single Draft' : 'Create Single Product Post'}
       </button>
+      {product.blogPosts?.[0] && (
+        <Link
+          href={`/dashboard/blog/${product.blogPosts[0].id}/edit`}
+          className={compact ? 'btn-primary py-2 px-4 text-[10px]' : 'btn-primary py-2 px-3 text-[9px]'}
+        >
+          Edit Draft
+        </Link>
+      )}
       {product.blogPosts?.[0] && (
         <button
           onClick={() => handleBlogPostPublishToggle(product)}
@@ -471,14 +514,17 @@ export default function Dashboard() {
                   <textarea value={collectionPost.pinterestDescription} onChange={(e) => setCollectionPost({...collectionPost, pinterestDescription: e.target.value})} placeholder="Pinterest description (optional; for pin copy/reference)" rows={3} className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" />
                   <label className="flex items-center gap-3 rounded-sm border border-brand-blush bg-brand-cream/30 p-3 text-xs font-bold uppercase tracking-widest text-brand-black/70">
                     <input type="checkbox" checked={collectionPost.isPublished} onChange={(e) => setCollectionPost({...collectionPost, isPublished: e.target.checked})} className="h-4 w-4 accent-brand-gold" />
-                    Publish immediately (leave off to save draft)
+                    Manual publish only after review (unchecked saves draft)
                   </label>
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3 lg:grid-cols-3">
                     <button type="button" onClick={handleGenerateCollectionDraft} disabled={generatingCollectionDraft || selectedProductIds.length < 2 || !collectionPost.title || !collectionPost.categoryId} className="btn-outline w-full py-3 disabled:opacity-50">
-                      {generatingCollectionDraft ? 'Generating...' : 'Generate AI Draft'}
+                      {generatingCollectionDraft ? 'Generating...' : 'Generate Copy Only'}
                     </button>
-                    <button type="submit" disabled={savingBlogPost || selectedProductIds.length < 2} className="btn-primary w-full py-3 disabled:opacity-50">
-                      {savingBlogPost ? 'Saving...' : 'Save Collection Blog Post'}
+                    <button type="button" onClick={handleGenerateAndOpenEditor} disabled={generatingCollectionDraft || selectedProductIds.length < 2 || !collectionPost.title || !collectionPost.categoryId} className="btn-primary w-full py-3 disabled:opacity-50">
+                      {generatingCollectionDraft ? 'Generating...' : 'Generate + Edit'}
+                    </button>
+                    <button type="submit" disabled={savingBlogPost || selectedProductIds.length < 2} className="btn-outline w-full py-3 disabled:opacity-50">
+                      {savingBlogPost ? 'Saving...' : 'Save Without Editor'}
                     </button>
                   </div>
                 </div>
@@ -527,13 +573,34 @@ export default function Dashboard() {
                 </div>
                 <label className="flex items-center gap-3 rounded-sm border border-brand-blush bg-brand-cream/30 p-3 text-xs font-bold uppercase tracking-widest text-brand-black/70">
                   <input type="checkbox" checked={manualPost.isPublished} onChange={(e) => setManualPost({...manualPost, isPublished: e.target.checked})} className="h-4 w-4 accent-brand-gold" />
-                  Publish immediately (leave off to save draft)
+                  Manual publish only after review (unchecked saves draft)
                 </label>
                 <button type="submit" disabled={savingBlogPost} className="btn-primary w-full py-3 disabled:opacity-50">{savingBlogPost ? 'Saving...' : 'Save Manual Post'}</button>
               </form>
             </div>
           </div>
         )}
+
+        <div className="mb-12 rounded-[2rem] border border-brand-blush bg-white p-6 shadow-sm">
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-gold">Magazine CMS</span>
+              <h2 className="mt-2 font-serif text-3xl text-brand-black">Editable blog drafts</h2>
+              <p className="mt-1 text-sm text-brand-black/60">Open any AI-generated draft in the luxury editor before publishing.</p>
+            </div>
+            <Link href="/blog" className="btn-outline inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs"><BookOpen size={14} /> View Blog</Link>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {dashboardData?.lists.recentBlogPosts?.map((post: any) => (
+              <Link key={post.id} href={`/dashboard/blog/${post.id}/edit`} className="rounded-2xl border border-brand-blush bg-brand-cream/30 p-4 transition-colors hover:border-brand-gold hover:bg-brand-blush/30">
+                <span className={`mb-3 inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${post.isPublished ? 'bg-green-100 text-green-700' : 'bg-brand-black text-brand-cream'}`}>{post.isPublished ? 'Published' : 'Draft'}</span>
+                <h3 className="font-serif text-xl leading-tight text-brand-black">{post.title}</h3>
+                <p className="mt-2 text-[10px] uppercase tracking-widest text-brand-black/45">{post.category?.name} • {post.products?.length || 0} products</p>
+              </Link>
+            ))}
+            {!dashboardData?.lists.recentBlogPosts?.length && <p className="rounded-2xl bg-brand-cream/40 p-5 text-sm italic text-brand-black/40">No blog drafts yet. Use Generate + Edit to create the first editable article.</p>}
+          </div>
+        </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {stats.map((stat, i) => (
