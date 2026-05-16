@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -30,6 +31,13 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        <Script id="pinterest-base-tag" strategy="afterInteractive">
+          {`
+            !function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[];n.version="3.0";var t=document.createElement("script");t.async=true;t.src=e;var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");
+            pintrk('load', '2613330333982');
+            pintrk('page');
+          `}
+        </Script>
       </body>
     </html>
   );
