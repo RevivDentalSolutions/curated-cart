@@ -3,9 +3,18 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
+const pinterestDomainVerification = process.env.PINTEREST_DOMAIN_VERIFICATION;
+
 export const metadata: Metadata = {
   title: "The Curated Cart | Pretty finds. Practical buys.",
   description: "A feminine lifestyle affiliate blog and shopping guide that curates the best Amazon finds in home decor, clothing, skincare, and everyday life.",
+  ...(pinterestDomainVerification
+    ? {
+        other: {
+          "p:domain_verify": pinterestDomainVerification,
+        },
+      }
+    : {}),
 };
 
 export default function RootLayout({
