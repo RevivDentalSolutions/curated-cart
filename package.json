@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && sh -c 'if [ -n \"$DATABASE_URL\" ]; then prisma migrate deploy; else echo \"Skipping prisma migrate deploy: DATABASE_URL not set\"; fi' && next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "vercel-build": "prisma generate && sh -c 'if [ -n \"$DATABASE_URL\" ]; then prisma migrate deploy; else echo \"Skipping prisma migrate deploy: DATABASE_URL not set\"; fi' && next build"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.63",
