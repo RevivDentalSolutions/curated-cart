@@ -1,1 +1,1 @@
-ALTER TABLE "BlogPost" ADD COLUMN "excerpt" TEXT;
+ALTER TABLE "BlogPost" ADD COLUMN IF NOT EXISTS "excerpt" TEXT;

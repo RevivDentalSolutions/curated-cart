@@ -22,6 +22,7 @@ A self-sufficient Amazon affiliate blog website for Home Decor, Fashion, Skincar
    DATABASE_URL="file:./dev.db"
    OPENAI_API_KEY="your-api-key"
    NEXT_PUBLIC_AMAZON_TAG="your-tag-20"
+   PINTEREST_DOMAIN_VERIFICATION="your-pinterest-verification-code"
    ```
 
 3. **Database Setup**:
@@ -49,6 +50,7 @@ A self-sufficient Amazon affiliate blog website for Home Decor, Fashion, Skincar
      - `DATABASE_URL`: (Use a hosted Postgres URL like Supabase for production)
      - `OPENAI_API_KEY`: Your OpenAI API key.
      - `NEXT_PUBLIC_AMAZON_TAG`: Your Amazon Associates tag.
+     - `PINTEREST_DOMAIN_VERIFICATION`: The code Pinterest provides when claiming/verifying this domain.
 
 3. **Deploy**:
    Vercel will automatically build and deploy your site.
