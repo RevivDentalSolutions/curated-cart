@@ -5,6 +5,7 @@ const accentClasses: Record<string, string> = {
   nude: 'bg-brand-nude',
   cream: 'bg-brand-cream',
   beige: 'bg-brand-beige/50',
+  sand: 'bg-brand-nude/70',
 };
 
 export default function CategoryStrip() {

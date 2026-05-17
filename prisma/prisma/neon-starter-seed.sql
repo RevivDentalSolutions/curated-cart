@@ -14,7 +14,8 @@ VALUES
   ('seed_category_beauty_tools', 'Beauty Tools'),
   ('seed_category_mom_life_favorites', 'Mom Life Favorites'),
   ('seed_category_under_25_finds', 'Under $25 Finds'),
-  ('seed_category_worth_the_splurge', 'Worth the Splurge')
+  ('seed_category_worth_the_splurge', 'Worth the Splurge'),
+  ('seed_category_elevated_summer', 'Elevated Summer')
 ON CONFLICT ("name") DO UPDATE
 SET "name" = EXCLUDED."name";
 
