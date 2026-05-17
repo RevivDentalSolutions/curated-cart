@@ -5,10 +5,11 @@ import path from 'node:path';
 import process from 'node:process';
 import { PrismaClient } from '@prisma/client';
 
-const DEFAULT_BASELINE_THROUGH = '20260516123000_ensure_blog_editor_fields';
+const DEFAULT_BASELINE_THROUGH = '20260510101950_init';
 const MIGRATIONS_DIR = path.join(process.cwd(), 'prisma', 'migrations');
 const baselineThrough = process.env.BASELINE_THROUGH || DEFAULT_BASELINE_THROUGH;
 const deployAfterBaseline = process.env.DEPLOY_AFTER_BASELINE !== 'false';
+const applicationTables = ['Category', 'Product', 'BlogPost', 'ContentBundle'];
 
 function run(command, args) {
   console.log(`\n$ ${[command, ...args].join(' ')}`);
@@ -33,6 +34,28 @@ async function appliedMigrations(prisma) {
 
     throw error;
   }
+}
+
+async function migrationHistoryExists(prisma) {
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT to_regclass('public."_prisma_migrations"') AS migration_table
+  `);
+
+  return Boolean(rows[0]?.migration_table);
+}
+
+async function existingApplicationTables(prisma) {
+  const tableList = applicationTables.map((table) => `'${table.replaceAll("'", "''")}'`).join(', ');
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_type = 'BASE TABLE'
+      AND table_name IN (${tableList})
+    ORDER BY table_name
+  `);
+
+  return rows.map((row) => row.table_name);
 }
 
 async function migrationSummary(prisma) {
@@ -78,8 +101,8 @@ const migrationsToDeploy = migrations.slice(baselineIndex + 1);
 console.log('Prisma Neon production baseline plan');
 console.log('-------------------------------------');
 console.log(`Baseline through: ${baselineThrough}`);
-console.log(`Migrations to mark applied: ${migrationsToBaseline.join(', ')}`);
-console.log(`Migrations left for migrate deploy: ${migrationsToDeploy.length ? migrationsToDeploy.join(', ') : '(none)'}`);
+console.log(`Migrations to mark applied if production is already populated: ${migrationsToBaseline.join(', ')}`);
+console.log(`Migrations left for migrate deploy after baselining: ${migrationsToDeploy.length ? migrationsToDeploy.join(', ') : '(none)'}`);
 console.log('This script never resets the database, drops tables, or deletes rows.');
 
 run('npx', ['prisma', 'generate']);
@@ -87,15 +110,27 @@ run('npx', ['prisma', 'generate']);
 const prisma = new PrismaClient();
 try {
   await prisma.$connect();
-  const before = await appliedMigrations(prisma);
 
-  for (const migration of migrationsToBaseline) {
-    if (before.has(migration)) {
-      console.log(`\nAlready applied, skipping resolve: ${migration}`);
-      continue;
+  const hasMigrationHistory = await migrationHistoryExists(prisma);
+  const existingTables = await existingApplicationTables(prisma);
+
+  if (!hasMigrationHistory && existingTables.length === 0) {
+    console.log('\nNo Prisma migration history or existing application tables were found. Running migrate deploy normally for a fresh database.');
+  } else if (!hasMigrationHistory) {
+    console.log(`\nNo Prisma migration history was found, but existing application tables are present: ${existingTables.join(', ')}`);
+    console.log('Baselining the initial migration so Prisma does not attempt to recreate existing production tables.');
+
+    const before = await appliedMigrations(prisma);
+    for (const migration of migrationsToBaseline) {
+      if (before.has(migration)) {
+        console.log(`\nAlready applied, skipping resolve: ${migration}`);
+        continue;
+      }
+
+      run('npx', ['prisma', 'migrate', 'resolve', '--applied', migration]);
     }
-
-    run('npx', ['prisma', 'migrate', 'resolve', '--applied', migration]);
+  } else {
+    console.log('\nPrisma migration history already exists. Skipping baseline resolve and running migrate deploy normally.');
   }
 
   if (deployAfterBaseline) {
