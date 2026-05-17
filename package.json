@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && sh -c 'if [ -n \"$DATABASE_URL\" ]; then prisma migrate deploy; else echo \"Skipping prisma migrate deploy: DATABASE_URL not set\"; fi' && next build",
+    "build": "prisma generate && sh -c 'if [ -n \"$DATABASE_URL\" ]; then npm run prisma:baseline:neon; else echo \"Skipping Prisma deploy: DATABASE_URL not set\"; fi' && next build",
     "start": "next start",
     "lint": "eslint",
     "seed": "node prisma/seed.js",
-    "vercel-build": "prisma generate && sh -c 'if [ -n \"$DATABASE_URL\" ]; then prisma migrate deploy; else echo \"Skipping prisma migrate deploy: DATABASE_URL not set\"; fi' && next build",
+    "vercel-build": "prisma generate && sh -c 'if [ -n \"$DATABASE_URL\" ]; then npm run prisma:baseline:neon; else echo \"Skipping Prisma deploy: DATABASE_URL not set\"; fi' && next build",
     "prisma:baseline:neon": "node prisma/baseline-neon-production.mjs"
   },
   "dependencies": {
