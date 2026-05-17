@@ -24,7 +24,7 @@ export default async function CategoriesPage() {
         <h1 className="text-5xl font-serif mt-4 mb-6 tracking-tighter text-brand-black">Shop by Category</h1>
         <div className="h-0.5 w-20 bg-brand-gold mx-auto mb-6"></div>
         <p className="max-w-2xl mx-auto text-sm leading-7 text-brand-black/60">
-          Eight polished edits for a softer, prettier Amazon cart — from beauty staples to elevated home, kitchen, and mom-life finds.
+          Nine polished edits for a softer, prettier Amazon cart — from beauty staples to elevated home, kitchen, mom-life, and warm-weather summer finds.
         </p>
       </div>
 
@@ -49,6 +49,9 @@ export default async function CategoriesPage() {
               <h2 className="text-3xl font-serif text-brand-cream drop-shadow-sm transition-transform group-hover:translate-x-1">
                 {cat.name}
               </h2>
+              <p className="mt-3 line-clamp-2 max-w-xs text-xs leading-5 text-brand-cream/80">
+                {cat.description}
+              </p>
               <div className="mt-4 h-0.5 w-12 bg-brand-gold transition-all group-hover:w-24"></div>
             </div>
           </Link>

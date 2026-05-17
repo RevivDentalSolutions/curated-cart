@@ -34,6 +34,10 @@ INSERT INTO "Category" ("id", "name")
 SELECT 'category_amazon_favorites_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16), 'Amazon Favorites'
 WHERE NOT EXISTS (SELECT 1 FROM "Category" WHERE "name" = 'Amazon Favorites');
 
+INSERT INTO "Category" ("id", "name")
+SELECT 'category_elevated_summer_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16), 'Elevated Summer'
+WHERE NOT EXISTS (SELECT 1 FROM "Category" WHERE "name" = 'Elevated Summer');
+
 -- Step 2: Move products and blog posts from legacy Beauty category names into Beauty.
 UPDATE "Product" AS p
 SET "categoryId" = target.id
@@ -143,7 +147,8 @@ WHERE c."name" NOT IN (
   'Kitchen',
   'Wellness',
   'Mom Life',
-  'Amazon Favorites'
+  'Amazon Favorites',
+  'Elevated Summer'
 )
 AND NOT EXISTS (SELECT 1 FROM "Product" AS p WHERE p."categoryId" = c.id)
 AND NOT EXISTS (SELECT 1 FROM "BlogPost" AS b WHERE b."categoryId" = c.id);

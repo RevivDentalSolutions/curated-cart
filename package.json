@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "node prisma/seed.js",
-    "vercel-build": "prisma generate && sh -c 'if [ -n \"$DATABASE_URL\" ]; then prisma migrate deploy; else echo \"Skipping prisma migrate deploy: DATABASE_URL not set\"; fi' && next build"
+    "vercel-build": "prisma generate && sh -c 'if [ -n \"$DATABASE_URL\" ]; then prisma migrate deploy; else echo \"Skipping prisma migrate deploy: DATABASE_URL not set\"; fi' && next build",
+    "prisma:baseline:neon": "node prisma/baseline-neon-production.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.63",
