@@ -16,6 +16,7 @@ export default async function Home() {
     },
   });
   const categories = buildCategoryCards(categorySources);
+  const elevatedSummer = categories.find((category) => category.slug === 'elevated-summer');
 
   const featuredFinds = await prisma.product.findMany({
     where: {
@@ -103,6 +104,35 @@ export default async function Home() {
           </div>
         )}
       </section>
+
+      {elevatedSummer && (
+        <section className="container mx-auto px-4">
+          <div className="relative overflow-hidden rounded-sm border border-brand-blush bg-brand-cream shadow-sm">
+            <ProductImage
+              src={elevatedSummer.image}
+              alt="Elevated Summer beach and poolside mood"
+              className="absolute inset-0 h-full w-full object-cover opacity-30"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-cream via-brand-cream/95 to-brand-nude/70"></div>
+            <div className="relative grid gap-10 p-8 md:grid-cols-[1fr_0.8fr] md:p-12 lg:p-16">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-gold">Featured Category</span>
+                <h2 className="mt-4 text-4xl font-serif tracking-tighter text-brand-black md:text-5xl">Elevated Summer</h2>
+                <p className="mt-5 max-w-2xl text-sm leading-7 text-brand-black/70">
+                  Pretty poolside finds, beach day essentials, vacation favorites, and soft luxury summer picks.
+                </p>
+                <Link href={elevatedSummer.href} className="btn-primary mt-8 inline-flex">Shop the Summer Edit</Link>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-[10px] uppercase tracking-[0.2em] text-brand-black/55">
+                <div className="min-h-32 bg-white/70 p-4 shadow-sm">Poolside polish</div>
+                <div className="min-h-40 bg-brand-blush/70 p-4 shadow-sm">Beach day essentials</div>
+                <div className="min-h-40 bg-brand-nude/80 p-4 shadow-sm">Vacation favorites</div>
+                <div className="min-h-32 bg-white/70 p-4 shadow-sm">Pinterest-ready banners</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Shop by Category */}
       <section className="bg-brand-blush/20 py-24">

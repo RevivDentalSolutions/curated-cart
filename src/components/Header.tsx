@@ -20,6 +20,7 @@ export default function Header() {
             <Link href="/blog" className="nav-link">Blog</Link>
             <Link href="/top-picks" className="nav-link">Top Picks</Link>
             <Link href="/categories" className="nav-link">Categories</Link>
+            <Link href="/categories/elevated-summer" className="nav-link">Elevated Summer</Link>
           </nav>
 
           <div className="flex items-center space-x-4">

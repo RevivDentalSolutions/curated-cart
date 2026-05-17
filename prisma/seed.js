@@ -11,6 +11,7 @@ const categoryNames = [
   'Wellness',
   'Mom Life',
   'Amazon Favorites',
+  'Elevated Summer',
 ];
 
 const products = [
@@ -187,7 +188,7 @@ async function main() {
     });
   }
 
-  console.log('Seeded 8 polished categories, 6 affiliate products, and 3 blog posts.');
+  console.log('Seeded 9 polished categories, 6 affiliate products, and 3 blog posts.');
 }
 
 main()
