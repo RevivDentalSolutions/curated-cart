@@ -1,6 +1,16 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, ShoppingCart, Star } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "Our Top Picks | Best of Amazon Finds",
+  description: "Explore our hand-picked selection of the best Amazon products across all categories. Luxury dupes, home essentials, and more.",
+  alternates: {
+    canonical: "https://www.shopthecuratedcart.com/top-picks",
+  },
+};
 
 export default async function TopPicks() {
   const categories = await prisma.category.findMany({
@@ -51,7 +61,13 @@ export default async function TopPicks() {
                 {section.products.map((item) => (
                   <div key={item.id} className="luxury-card group">
                     <div className="relative aspect-square overflow-hidden bg-brand-cream">
-                      <img src={getCategoryImage(section.name)} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <Image 
+                        src={getCategoryImage(section.name)} 
+                        alt={item.name} 
+                        fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
                       <div className="absolute top-4 left-4">
                         <div className="flex bg-white/90 backdrop-blur-sm px-2 py-1 rounded-sm text-brand-gold">
                           {[1, 2, 3, 4, 5].map((s) => <Star key={s} size={10} fill="currentColor" />)}

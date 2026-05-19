@@ -1,6 +1,16 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Star, Heart } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "The Curated Cart | Pretty finds. Practical buys.",
+  description: "Your daily dose of curated style. We find the most beautiful, practical, and viral Amazon products so you don't have to.",
+  alternates: {
+    canonical: "https://www.shopthecuratedcart.com",
+  },
+};
 
 export default async function Home() {
   const categories = await prisma.category.findMany({
@@ -78,10 +88,12 @@ export default async function Home() {
             {featuredFinds.map((item) => (
               <div key={item.id} className="luxury-card group overflow-hidden">
                 <div className="relative aspect-[4/5] overflow-hidden bg-brand-cream">
-                  <img 
+                  <Image 
                     src={getCategoryImage(item.category.name)} 
                     alt={item.name} 
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500" 
                   />
                   <button className="absolute top-4 right-4 p-2 bg-white/80 rounded-full text-brand-black hover:text-red-500 transition-colors">
                     <Heart size={16} />
@@ -118,7 +130,13 @@ export default async function Home() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {categories.map((cat) => (
               <Link href={`/categories/${cat.id}`} key={cat.id} className="group relative aspect-square overflow-hidden bg-brand-cream rounded-sm">
-                <img src={getCategoryImage(cat.name)} alt={cat.name} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700 opacity-80" />
+                <Image 
+                  src={getCategoryImage(cat.name)} 
+                  alt={cat.name} 
+                  fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 16vw"
+                  className="object-cover group-hover:scale-110 transition-transform duration-700 opacity-80" 
+                />
                 <div className="absolute inset-0 bg-brand-black/20 group-hover:bg-brand-black/40 transition-colors flex items-center justify-center p-4">
                   <span className="text-white text-xs md:text-sm uppercase tracking-widest font-bold text-center border-b border-white/0 group-hover:border-white/100 transition-all">{cat.name}</span>
                 </div>
@@ -144,11 +162,13 @@ export default async function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {latestPosts.map((post) => (
               <Link href={`/blog/${post.slug}`} key={post.id} className="group">
-                <div className="aspect-[16/9] overflow-hidden mb-6 bg-brand-nude">
-                  <img 
+                <div className="relative aspect-[16/9] overflow-hidden mb-6 bg-brand-nude">
+                  <Image 
                     src={getCategoryImage(post.category.name)} 
                     alt={post.title} 
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500" 
                   />
                 </div>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-brand-gold font-bold">{post.category.name} • {new Date(post.createdAt).toLocaleDateString()}</span>

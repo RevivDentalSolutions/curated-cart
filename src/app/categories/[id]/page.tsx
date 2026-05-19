@@ -1,6 +1,25 @@
 import { ArrowRight, ShoppingCart, Star } from 'lucide-react';
+import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const category = await prisma.category.findUnique({
+    where: { id },
+  });
+
+  if (!category) return {};
+
+  return {
+    title: `${category.name} | Curated Amazon Finds`,
+    description: `Explore our hand-picked selection of the best Amazon products in the ${category.name} category.`,
+    alternates: {
+      canonical: `https://www.shopthecuratedcart.com/categories/${id}`,
+    },
+  };
+}
 
 export default async function CategoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -42,10 +61,12 @@ export default async function CategoryPage({ params }: { params: Promise<{ id: s
           {category.products.map((item) => (
             <div key={item.id} className="luxury-card group overflow-hidden">
               <div className="relative aspect-[4/5] overflow-hidden bg-brand-cream">
-                <img 
+                <Image 
                   src={getCategoryImage(category.name)} 
                   alt={item.name} 
-                  className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500" 
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform bg-white/90 backdrop-blur-sm">
                   <a href={item.amazonLink || '#'} target="_blank" rel="noopener noreferrer" className="block w-full btn-primary text-[10px] py-3 text-center">

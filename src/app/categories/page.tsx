@@ -1,5 +1,15 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "Shop by Category | Curated Amazon Collections",
+  description: "Browse our hand-picked Amazon collections in Home Decor, Fashion, Skincare, and more.",
+  alternates: {
+    canonical: "https://www.shopthecuratedcart.com/categories",
+  },
+};
 
 export default async function CategoriesPage() {
   const categories = await prisma.category.findMany({
@@ -33,7 +43,13 @@ export default async function CategoriesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {categories.map((cat) => (
           <Link href={`/categories/${cat.id}`} key={cat.id} className="group relative h-96 overflow-hidden bg-brand-cream rounded-sm shadow-sm hover:shadow-xl transition-all border border-brand-blush">
-            <img src={getCategoryImage(cat.name)} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90" />
+            <Image 
+              src={getCategoryImage(cat.name)} 
+              alt={cat.name} 
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover group-hover:scale-110 transition-transform duration-700 opacity-90" 
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-brand-black/80 via-brand-black/20 to-transparent flex flex-col justify-end p-8 text-left">
               <span className="text-brand-gold text-[10px] uppercase tracking-[0.3em] font-bold mb-2">
                 {cat._count.products} Curated Items

@@ -1,6 +1,16 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "The Library | Shopping Guides & Reviews",
+  description: "Explore our curated library of Amazon finds, luxury dupes, and practical reviews for home, fashion, and beauty.",
+  alternates: {
+    canonical: "https://www.shopthecuratedcart.com/blog",
+  },
+};
 
 export default async function BlogPage() {
   const categories = await prisma.category.findMany();
@@ -49,11 +59,13 @@ export default async function BlogPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
           {posts.map((post) => (
             <Link href={`/blog/${post.slug}`} key={post.id} className="group">
-              <div className="aspect-[4/3] overflow-hidden mb-6 bg-brand-nude">
-                <img 
+              <div className="aspect-[4/3] overflow-hidden mb-6 bg-brand-nude relative">
+                <Image 
                   src={getCategoryImage(post.category.name)} 
                   alt={post.title} 
-                  className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500" 
                 />
               </div>
               <div className="flex items-center gap-4 mb-3">

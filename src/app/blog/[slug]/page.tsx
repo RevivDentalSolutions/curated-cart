@@ -1,7 +1,38 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShoppingCart, ArrowLeft, Star, ThumbsUp, ThumbsDown, CheckCircle } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await prisma.blogPost.findUnique({
+    where: { slug },
+  });
+
+  if (!post) return {};
+
+  return {
+    title: post.metaTitle || post.title,
+    description: post.metaDescription || undefined,
+    alternates: {
+      canonical: `https://www.shopthecuratedcart.com/blog/${slug}`,
+    },
+    openGraph: {
+      title: post.metaTitle || post.title,
+      description: post.metaDescription || undefined,
+      url: `https://www.shopthecuratedcart.com/blog/${slug}`,
+      type: 'article',
+      publishedTime: post.createdAt.toISOString(),
+      images: [
+        {
+          url: post.featuredImage || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1600',
+        }
+      ]
+    },
+  };
+}
 
 export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -19,6 +50,32 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
     notFound();
   }
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.metaDescription || post.title,
+    image: post.featuredImage || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1600',
+    datePublished: post.createdAt.toISOString(),
+    dateModified: post.updatedAt.toISOString(),
+    author: {
+      '@type': 'Person',
+      name: 'Sarah',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'The Curated Cart',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://www.shopthecuratedcart.com/favicon.ico',
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `https://www.shopthecuratedcart.com/blog/${slug}`,
+    },
+  };
+
   const getCategoryImage = (name: string) => {
     const images: {[key: string]: string} = {
       'Home Decor': 'https://images.unsplash.com/photo-1616489953149-75517454e9c3?auto=format&fit=crop&q=80&w=1600',
@@ -32,13 +89,20 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
   };
 
   return (
-    <article className="pb-20">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <article className="pb-20">
       {/* Hero */}
       <div className="relative h-[60vh] bg-brand-nude/20">
-        <img 
+        <Image 
           src={getCategoryImage(post.category.name)} 
           alt={post.title} 
-          className="w-full h-full object-cover opacity-90"
+          fill
+          priority
+          className="object-cover opacity-90"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-brand-cream via-transparent to-transparent"></div>
         <div className="absolute bottom-0 left-0 right-0 py-12">
@@ -75,11 +139,13 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
               <h2 className="text-3xl font-serif mt-16 mb-8 text-brand-black">The Top Picks</h2>
               {post.products.map((product) => (
                 <div key={product.id} className="my-12 luxury-card p-6 md:p-8 flex flex-col md:flex-row gap-8">
-                  <div className="w-full md:w-2/5 aspect-square bg-brand-cream overflow-hidden">
-                    <img 
+                  <div className="w-full md:w-2/5 aspect-square bg-brand-cream overflow-hidden relative">
+                    <Image 
                       src={getCategoryImage(product.category.name)} 
                       alt={product.name} 
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 30vw"
+                      className="object-cover"
                     />
                   </div>
                   <div className="w-full md:w-3/5 flex flex-col">
@@ -141,8 +207,14 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         
         {/* Author Bio or CTA */}
         <div className="mt-20 border-y border-brand-blush py-12 flex flex-col items-center text-center">
-          <div className="w-20 h-20 bg-brand-nude rounded-full mb-6 overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" alt="Author" />
+          <div className="w-20 h-20 bg-brand-nude rounded-full mb-6 overflow-hidden relative">
+            <Image 
+              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" 
+              alt="Author Sarah" 
+              width={80}
+              height={80}
+              className="object-cover"
+            />
           </div>
           <h4 className="font-serif text-xl mb-2 text-brand-black">Curated by Sarah</h4>
           <p className="text-sm text-brand-black/60 max-w-md mb-8">
@@ -152,5 +224,6 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         </div>
       </div>
     </article>
+    </>
   );
 }
