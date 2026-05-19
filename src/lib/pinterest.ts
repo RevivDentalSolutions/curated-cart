@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { siteUrl } from '@/lib/site-url';
 
 const PINTEREST_API_BASE = 'https://api.pinterest.com/v5';
 const DEFAULT_BOARD_NAME = 'The Curated Cart Finds';
@@ -24,9 +25,6 @@ function trimTo(value: string, maxLength: number) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1).trim()}…` : value;
 }
 
-function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || 'https://thecuratedcart.com').replace(/\/$/, '');
-}
 
 function boardSuggestion(categoryName?: string | null) {
   if (!categoryName) return DEFAULT_BOARD_NAME;

@@ -3,10 +3,12 @@ import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { siteUrl } from "@/lib/site-url";
 
 const pinterestDomainVerification = process.env.PINTEREST_DOMAIN_VERIFICATION;
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: "The Curated Cart | Pretty finds. Practical buys.",
   description: "A feminine lifestyle affiliate blog and shopping guide that curates the best Amazon finds in home decor, clothing, skincare, and everyday life.",
   ...(pinterestDomainVerification

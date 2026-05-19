@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ShoppingCart, Sparkles, Star, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
@@ -5,9 +6,50 @@ import { isAdminAuthenticated } from '@/lib/admin-auth';
 import CreatePinsButton from '@/components/CreatePinsButton';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
+import Script from 'next/script';
+import { siteUrl } from '@/lib/site-url';
 import BlogArticleHeader from '@/components/BlogArticleHeader';
 import ProductImage from '@/components/ProductImage';
 import { BlogEditorSection, normalizeEditorSections } from '@/lib/blog-editor';
+
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPost(slug);
+
+  if (!post || !post.isPublished) {
+    return {
+      title: 'Post Not Found | The Curated Cart',
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const canonicalUrl = `${siteUrl()}/blog/${post.slug}`;
+  const description = post.metaDescription || post.excerpt || post.content?.slice(0, 155) || `Read ${post.title} on The Curated Cart.`;
+
+  return {
+    title: post.metaTitle || post.title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: post.metaTitle || post.title,
+      description,
+      type: 'article',
+      url: canonicalUrl,
+      publishedTime: post.createdAt.toISOString(),
+      modifiedTime: post.updatedAt.toISOString(),
+      images: post.featuredImage ? [{ url: post.featuredImage, alt: post.title }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.metaTitle || post.title,
+      description,
+      images: post.featuredImage ? [post.featuredImage] : undefined,
+    },
+  };
+}
 
 type BlogProduct = NonNullable<Awaited<ReturnType<typeof getPost>>>['products'][number];
 type ProductModule =
@@ -534,8 +576,32 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
     [post.title, post.excerpt, post.metaDescription, post.content, ...post.products.map((product) => product.viralTrendNotes)].join(' ')
   );
 
+  const canonicalUrl = `${siteUrl()}/blog/${post.slug}`;
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.metaDescription || post.excerpt || undefined,
+    datePublished: post.createdAt.toISOString(),
+    dateModified: post.updatedAt.toISOString(),
+    mainEntityOfPage: canonicalUrl,
+    image: post.featuredImage || undefined,
+    author: {
+      '@type': 'Person',
+      name: post.authorName || 'Jessica',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'The Curated Cart',
+      url: siteUrl(),
+    },
+  };
+
   return (
     <article className="overflow-hidden pb-20">
+      <Script id="blog-post-jsonld" type="application/ld+json" strategy="beforeInteractive">
+        {JSON.stringify(structuredData)}
+      </Script>
       <BlogArticleHeader
         category={post.category.name}
         title={post.title}
