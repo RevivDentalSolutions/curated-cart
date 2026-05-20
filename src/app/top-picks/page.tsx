@@ -62,7 +62,7 @@ export default async function TopPicks() {
                   <div key={item.id} className="luxury-card group">
                     <div className="relative aspect-square overflow-hidden bg-brand-cream">
                       <Image 
-                        src={getCategoryImage(section.name)} 
+                        src={item.image || getCategoryImage(section.name)} 
                         alt={item.name} 
                         fill
                         sizes="(max-width: 768px) 100vw, 33vw"

@@ -141,7 +141,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
                 <div key={product.id} className="my-12 luxury-card p-6 md:p-8 flex flex-col md:flex-row gap-8">
                   <div className="w-full md:w-2/5 aspect-square bg-brand-cream overflow-hidden relative">
                     <Image 
-                      src={getCategoryImage(product.category.name)} 
+                      src={product.image || getCategoryImage(product.category.name)} 
                       alt={product.name} 
                       fill
                       sizes="(max-width: 768px) 100vw, 30vw"

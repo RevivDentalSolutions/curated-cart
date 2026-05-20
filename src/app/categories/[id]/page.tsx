@@ -62,7 +62,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ id: s
             <div key={item.id} className="luxury-card group overflow-hidden">
               <div className="relative aspect-[4/5] overflow-hidden bg-brand-cream">
                 <Image 
-                  src={getCategoryImage(category.name)} 
+                  src={item.image || getCategoryImage(category.name)} 
                   alt={item.name} 
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"

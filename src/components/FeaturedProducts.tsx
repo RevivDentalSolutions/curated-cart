@@ -53,10 +53,12 @@ export default function FeaturedProducts() {
           {products.map((product) => (
             <div key={product.id} className="group flex flex-col bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
               <div className="relative aspect-[3/4] overflow-hidden">
-                <img 
+                <Image 
                   src={product.image} 
                   alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 25vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute top-4 left-4">
                   <span className="bg-brand-cream/90 backdrop-blur-sm text-brand-black text-[10px] font-bold uppercase tracking-widest px-3 py-1">

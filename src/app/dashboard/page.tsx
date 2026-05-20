@@ -19,6 +19,7 @@ export default function Dashboard() {
     name: '',
     categoryId: '',
     amazonLink: '',
+    image: '',
     price: '',
     source: '',
   });
@@ -63,9 +64,9 @@ export default function Dashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        setShowAddModal(false);
-        setNewProduct({ name: '', categoryId: '', amazonLink: '', price: '', source: '' });
-        fetchData();
+      setShowAddModal(false);
+      setNewProduct({ name: '', categoryId: '', amazonLink: '', image: '', price: '', source: '' });
+      fetchData();
       } else {
         alert(data.error);
       }
@@ -140,6 +141,16 @@ export default function Dashboard() {
                     value={newProduct.amazonLink}
                     onChange={(e) => setNewProduct({...newProduct, amazonLink: e.target.value})}
                     type="url" 
+                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Product Image URL</label>
+                  <input 
+                    value={newProduct.image}
+                    onChange={(e) => setNewProduct({...newProduct, image: e.target.value})}
+                    type="url" 
+                    placeholder="Unsplash, Amazon, etc."
                     className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
                   />
                 </div>

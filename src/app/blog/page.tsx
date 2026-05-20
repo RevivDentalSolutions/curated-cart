@@ -61,7 +61,7 @@ export default async function BlogPage() {
             <Link href={`/blog/${post.slug}`} key={post.id} className="group">
               <div className="aspect-[4/3] overflow-hidden mb-6 bg-brand-nude relative">
                 <Image 
-                  src={getCategoryImage(post.category.name)} 
+                  src={post.featuredImage || getCategoryImage(post.category.name)} 
                   alt={post.title} 
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

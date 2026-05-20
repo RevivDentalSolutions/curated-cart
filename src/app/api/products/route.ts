@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, categoryId, amazonLink, price, source, viralTrendNotes, contentIdea } = body;
+    const { name, categoryId, amazonLink, price, source, viralTrendNotes, contentIdea, image } = body;
 
     if (!name || !categoryId) {
       return NextResponse.json({ error: 'Name and Category are required' }, { status: 400 });
@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       data: {
         name,
         categoryId,
+        image,
         amazonLink,
         price: price ? parseFloat(price) : null,
         source,
