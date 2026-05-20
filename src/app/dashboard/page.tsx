@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { 
   Plus, Search, Filter, TrendingUp, FileText, 
   Share2, Video, DollarSign, Calendar, CheckSquare,
-  Clock, AlertCircle, Loader2
+  Clock, AlertCircle, Loader2, ArrowRight
 } from 'lucide-react';
 import AIAssistant from '@/components/AIAssistant';
 
@@ -14,6 +14,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeProduct, setActiveProduct] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showRoundupModal, setShowRoundupModal] = useState(false);
+  const [successPost, setSuccessPost] = useState<any>(null);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -23,24 +26,25 @@ export default function Dashboard() {
     price: '',
     source: '',
   });
+  const [roundupData, setRoundupData] = useState({
+    title: '',
+    categoryId: '',
+  });
 
   const fetchData = async () => {
     try {
       const [dashRes, autoRes, catRes] = await Promise.all([
         fetch('/api/dashboard'),
         fetch('/api/automations'),
-        fetch('/api/categories/api') // I'll create this or use a different way
+        fetch('/api/categories-list')
       ]);
       
       const dashJson = await dashRes.json();
       const autoJson = await autoRes.json();
+      const catJson = await catRes.json();
       
       if (dashJson.success) setDashboardData(dashJson.data);
       if (autoJson.success) setAutomationData(autoJson.data);
-      
-      // Fetch categories from prisma directly in a small API
-      const catResponse = await fetch('/api/categories-list');
-      const catJson = await catResponse.json();
       if (catJson.success) setCategories(catJson.data);
 
     } catch (error) {
@@ -73,6 +77,42 @@ export default function Dashboard() {
     } catch (error) {
       alert('Failed to add product');
     }
+  };
+
+  const handleCreateRoundup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedProducts.length === 0) return;
+    
+    try {
+      const res = await fetch('/api/money-page-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...roundupData,
+          productIds: selectedProducts,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowRoundupModal(false);
+        setSelectedProducts([]);
+        setRoundupData({ title: '', categoryId: '' });
+        setSuccessPost(data.data);
+        fetchData();
+      } else {
+        alert(data.error);
+      }
+    } catch (error) {
+      alert('Failed to create roundup post');
+    }
+  };
+
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProducts(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
   };
 
   if (loading) {
@@ -195,6 +235,106 @@ export default function Dashboard() {
           </div>
         )}
 
+        {showRoundupModal && (
+          <div className="fixed inset-0 bg-brand-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-md rounded-sm shadow-xl p-8 animate-in fade-in zoom-in duration-300">
+              <h2 className="font-serif text-2xl mb-2 text-brand-black">Create Roundup Post</h2>
+              <p className="text-xs text-brand-black/60 uppercase tracking-widest mb-6">Grouping {selectedProducts.length} selected products</p>
+              
+              <form onSubmit={handleCreateRoundup} className="space-y-4">
+                <div>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Roundup Title</label>
+                  <input 
+                    required
+                    placeholder="e.g., 10 Home Decor Finds That Look Expensive"
+                    value={roundupData.title}
+                    onChange={(e) => setRoundupData({...roundupData, title: e.target.value})}
+                    type="text" 
+                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Post Category</label>
+                  <select 
+                    required
+                    value={roundupData.categoryId}
+                    onChange={(e) => setRoundupData({...roundupData, categoryId: e.target.value})}
+                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm bg-white"
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((cat: any) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="pt-2">
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-2">Selected Products:</p>
+                  <div className="max-h-32 overflow-y-auto space-y-1 pr-2">
+                    {dashboardData?.lists.readyToPromote
+                      .filter((p: any) => selectedProducts.includes(p.id))
+                      .map((p: any) => (
+                        <div key={p.id} className="text-xs p-2 bg-brand-cream/30 border border-brand-blush rounded-sm flex justify-between items-center text-brand-black">
+                          <span className="truncate mr-2">{p.name}</span>
+                          <button 
+                            type="button"
+                            onClick={() => toggleProductSelection(p.id)}
+                            className="text-red-400 hover:text-red-600"
+                          >
+                            <Plus size={12} className="rotate-45" />
+                          </button>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowRoundupModal(false)}
+                    className="flex-grow btn-outline py-3"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="flex-grow btn-primary py-3"
+                  >
+                    Build Money Page
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {successPost && (
+          <div className="mb-8 bg-green-50 border border-green-200 p-6 rounded-sm flex justify-between items-center animate-in fade-in slide-in-from-top-4 duration-500">
+            <div>
+              <h3 className="font-serif text-lg text-green-800">Post Created Successfully!</h3>
+              <p className="text-sm text-green-600 mt-1">
+                Your roundup post <span className="font-bold">"{successPost.title}"</span> is ready.
+              </p>
+              <div className="mt-4 flex gap-4">
+                <a 
+                  href={`/blog/${successPost.slug}`} 
+                  target="_blank" 
+                  className="text-xs uppercase tracking-widest font-bold text-brand-black hover:text-brand-gold flex items-center gap-2"
+                >
+                  View Draft Post <ArrowRight size={12} />
+                </a>
+              </div>
+            </div>
+            <button 
+              onClick={() => setSuccessPost(null)}
+              className="text-green-800 hover:text-green-600"
+            >
+              <Plus size={20} className="rotate-45" />
+            </button>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {stats.map((stat, i) => (
@@ -215,7 +355,17 @@ export default function Dashboard() {
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white rounded-sm border border-brand-blush shadow-sm overflow-hidden">
               <div className="p-6 border-b border-brand-blush flex flex-col md:flex-row justify-between items-center gap-4">
-                <h3 className="font-serif text-xl text-brand-black">Ready to Promote</h3>
+                <div className="flex items-center gap-4">
+                  <h3 className="font-serif text-xl text-brand-black">Ready to Promote</h3>
+                  {selectedProducts.length > 0 && (
+                    <button 
+                      onClick={() => setShowRoundupModal(true)}
+                      className="bg-brand-gold text-brand-black px-4 py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest hover:bg-brand-black hover:text-brand-cream transition-colors animate-in fade-in slide-in-from-left-4 duration-300"
+                    >
+                      Create Roundup ({selectedProducts.length})
+                    </button>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 w-full md:w-auto">
                   <div className="relative flex-grow">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-black/40" />
@@ -231,6 +381,20 @@ export default function Dashboard() {
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-brand-cream/50 text-[10px] uppercase tracking-widest font-bold text-brand-black/40 border-b border-brand-blush">
+                      <th className="px-6 py-4 w-10">
+                        <input 
+                          type="checkbox" 
+                          checked={dashboardData?.lists.readyToPromote.length > 0 && selectedProducts.length === dashboardData?.lists.readyToPromote.length}
+                          onChange={() => {
+                            if (selectedProducts.length === dashboardData?.lists.readyToPromote.length) {
+                              setSelectedProducts([]);
+                            } else {
+                              setSelectedProducts(dashboardData?.lists.readyToPromote.map((p: any) => p.id));
+                            }
+                          }}
+                          className="accent-brand-gold h-4 w-4 rounded border-brand-blush"
+                        />
+                      </th>
                       <th className="px-6 py-4">Product</th>
                       <th className="px-6 py-4">Category</th>
                       <th className="px-6 py-4">Status</th>
@@ -241,6 +405,14 @@ export default function Dashboard() {
                   <tbody className="divide-y divide-brand-blush">
                     {dashboardData?.lists.readyToPromote.map((p: any, i: number) => (
                       <tr key={i} className="hover:bg-brand-cream/20 transition-colors text-sm">
+                        <td className="px-6 py-4">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedProducts.includes(p.id)}
+                            onChange={() => toggleProductSelection(p.id)}
+                            className="accent-brand-gold h-4 w-4 rounded border-brand-blush"
+                          />
+                        </td>
                         <td className="px-6 py-4 font-bold text-brand-black">{p.name}</td>
                         <td className="px-6 py-4 text-xs opacity-60 text-brand-black">{p.category?.name}</td>
                         <td className="px-6 py-4">
@@ -261,7 +433,7 @@ export default function Dashboard() {
                     ))}
                     {dashboardData?.lists.readyToPromote.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-sm text-brand-black/40 italic">
+                        <td colSpan={6} className="px-6 py-12 text-center text-sm text-brand-black/40 italic">
                           No products ready to promote yet.
                         </td>
                       </tr>
