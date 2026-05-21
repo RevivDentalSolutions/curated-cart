@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { Metadata } from 'next';
+import type { Prisma } from '@/generated/client';
 
 export const metadata: Metadata = {
   title: "The Library | Shopping Guides & Reviews",
@@ -15,12 +16,21 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function BlogPage() {
-  const categories = await prisma.category.findMany();
-  const posts = await prisma.blogPost.findMany({
-    where: { isPublished: true },
-    include: { category: true },
-    orderBy: { createdAt: 'desc' }
-  });
+  let categories: Prisma.CategoryGetPayload<Record<string, never>>[] = [];
+  let posts: Prisma.BlogPostGetPayload<{ include: { category: true } }>[] = [];
+
+  try {
+    [categories, posts] = await Promise.all([
+      prisma.category.findMany(),
+      prisma.blogPost.findMany({
+        where: { isPublished: true },
+        include: { category: true },
+        orderBy: { createdAt: 'desc' }
+      }),
+    ]);
+  } catch {
+    // Fall back to empty states when DB is unavailable.
+  }
 
   const getCategoryImage = (name: string) => {
     const images: {[key: string]: string} = {

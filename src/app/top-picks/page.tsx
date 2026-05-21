@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ArrowRight, ShoppingCart, Star } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { Metadata } from 'next';
+import type { Prisma } from '@/generated/client';
 
 export const metadata: Metadata = {
   title: "Our Top Picks | Best of Amazon Finds",
@@ -15,16 +16,21 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function TopPicks() {
-  const categories = await prisma.category.findMany({
-    include: {
-      products: {
-        where: {
-          blogPostStatus: 'Published'
-        },
-        take: 3
+  let categories: Prisma.CategoryGetPayload<{ include: { products: { where: { blogPostStatus: 'Published' }, take: 3 } } }>[] = [];
+  try {
+    categories = await prisma.category.findMany({
+      include: {
+        products: {
+          where: {
+            blogPostStatus: 'Published'
+          },
+          take: 3
+        }
       }
-    }
-  });
+    });
+  } catch {
+    // Fall back to empty states when DB is unavailable.
+  }
 
   const getCategoryImage = (name: string) => {
     const images: {[key: string]: string} = {
@@ -60,7 +66,7 @@ export default async function TopPicks() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {section.products.map((item) => (
+                {section.products.map((item: Prisma.ProductGetPayload<Record<string, never>>) => (
                   <div key={item.id} className="luxury-card group">
                     <div className="relative aspect-square overflow-hidden bg-brand-cream">
                       <Image 

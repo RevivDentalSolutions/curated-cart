@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ArrowRight, Star, Heart } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { Metadata } from 'next';
+import type { Prisma } from '@/generated/client';
 
 export const metadata: Metadata = {
   title: "The Curated Cart | Pretty finds. Practical buys.",
@@ -15,35 +16,29 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const categories = await prisma.category.findMany({
-    take: 6,
-  });
+  let categories: Prisma.CategoryGetPayload<Record<string, never>>[] = [];
+  let featuredFinds: Prisma.ProductGetPayload<{ include: { category: true } }>[] = [];
+  let latestPosts: Prisma.BlogPostGetPayload<{ include: { category: true } }>[] = [];
 
-  const featuredFinds = await prisma.product.findMany({
-    where: {
-      blogPostStatus: 'Published'
-    },
-    include: {
-      category: true
-    },
-    take: 4,
-    orderBy: {
-      dateAdded: 'desc'
-    }
-  });
-
-  const latestPosts = await prisma.blogPost.findMany({
-    where: {
-      isPublished: true
-    },
-    include: {
-      category: true
-    },
-    take: 3,
-    orderBy: {
-      createdAt: 'desc'
-    }
-  });
+  try {
+    [categories, featuredFinds, latestPosts] = await Promise.all([
+      prisma.category.findMany({ take: 6 }),
+      prisma.product.findMany({
+        where: { blogPostStatus: 'Published' },
+        include: { category: true },
+        take: 4,
+        orderBy: { dateAdded: 'desc' }
+      }),
+      prisma.blogPost.findMany({
+        where: { isPublished: true },
+        include: { category: true },
+        take: 3,
+        orderBy: { createdAt: 'desc' }
+      }),
+    ]);
+  } catch {
+    // Fall back to empty sections when DB is unavailable.
+  }
 
   // Fallback images if not provided
   const getCategoryImage = (name: string) => {

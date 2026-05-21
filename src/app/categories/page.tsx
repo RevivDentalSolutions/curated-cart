@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import { Metadata } from 'next';
+import type { Prisma } from '@/generated/client';
 
 export const metadata: Metadata = {
   title: "Shop by Category | Curated Amazon Collections",
@@ -14,13 +15,18 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function CategoriesPage() {
-  const categories = await prisma.category.findMany({
-    include: {
-      _count: {
-        select: { products: true }
+  let categories: Prisma.CategoryGetPayload<{ include: { _count: { select: { products: true } } } }>[] = [];
+  try {
+    categories = await prisma.category.findMany({
+      include: {
+        _count: {
+          select: { products: true }
+        }
       }
-    }
-  });
+    });
+  } catch {
+    // Fall back to empty states when DB is unavailable.
+  }
 
   const getCategoryImage = (name: string) => {
     const images: {[key: string]: string} = {
