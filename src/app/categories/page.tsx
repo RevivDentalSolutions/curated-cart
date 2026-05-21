@@ -14,13 +14,18 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function CategoriesPage() {
-  const categories = await prisma.category.findMany({
-    include: {
-      _count: {
-        select: { products: true }
+  let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
+  try {
+    categories = await prisma.category.findMany({
+      include: {
+        _count: {
+          select: { products: true }
+        }
       }
-    }
-  });
+    });
+  } catch {
+    // Fall back to empty states when DB is unavailable.
+  }
 
   const getCategoryImage = (name: string) => {
     const images: {[key: string]: string} = {
