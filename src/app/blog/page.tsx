@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function BlogPage() {
   const categories = await prisma.category.findMany();
   const posts = await prisma.blogPost.findMany({

@@ -19,12 +19,13 @@ A self-sufficient Amazon affiliate blog website for Home Decor, Fashion, Skincar
 2. **Environment Variables**:
    Create a `.env` file in the root directory and add:
    ```env
-   DATABASE_URL="file:./dev.db"
+   DATABASE_URL="postgresql://user:password@host/db"
    OPENAI_API_KEY="your-api-key"
    NEXT_PUBLIC_AMAZON_TAG="your-tag-20"
    ```
 
 3. **Database Setup**:
+   The project is configured to use PostgreSQL (e.g., Neon).
    ```bash
    npx prisma generate
    npx prisma db push
@@ -45,8 +46,9 @@ A self-sufficient Amazon affiliate blog website for Home Decor, Fashion, Skincar
 2. **Connect to Vercel**:
    - Create a new project on Vercel.
    - Import your repository.
+   - The build command is automatically configured in `package.json` as `prisma generate && prisma db push && next build`.
    - Add the following Environment Variables in the Vercel dashboard:
-     - `DATABASE_URL`: (Use a hosted Postgres URL like Supabase for production)
+     - `DATABASE_URL`: (Use a hosted Postgres URL like Neon)
      - `OPENAI_API_KEY`: Your OpenAI API key.
      - `NEXT_PUBLIC_AMAZON_TAG`: Your Amazon Associates tag.
 
