@@ -2,15 +2,15 @@
   "name": "the-curated-cart",
   "version": "0.1.0",
   "private": true,
-"scripts": {
-  "dev": "next dev",
-  "postinstall": "prisma generate",
-  "build": "prisma generate && next build",
- "vercel-build": "prisma generate && prisma db push && next build"
-  "start": "next start",
-  "lint": "eslint",
-  "seed": "node prisma/seed.js"
-},
+  "scripts": {
+    "dev": "next dev",
+    "postinstall": "prisma generate",
+    "build": "prisma generate && next build",
+    "vercel-build": "prisma generate && prisma db push && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "seed": "node prisma/seed.js"
+  },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.63",
     "@prisma/client": "^6.2.1",
