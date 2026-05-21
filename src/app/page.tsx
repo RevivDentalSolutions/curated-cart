@@ -15,35 +15,29 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const categories = await prisma.category.findMany({
-    take: 6,
-  });
+  let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
+  let featuredFinds: Awaited<ReturnType<typeof prisma.product.findMany>> = [];
+  let latestPosts: Awaited<ReturnType<typeof prisma.blogPost.findMany>> = [];
 
-  const featuredFinds = await prisma.product.findMany({
-    where: {
-      blogPostStatus: 'Published'
-    },
-    include: {
-      category: true
-    },
-    take: 4,
-    orderBy: {
-      dateAdded: 'desc'
-    }
-  });
-
-  const latestPosts = await prisma.blogPost.findMany({
-    where: {
-      isPublished: true
-    },
-    include: {
-      category: true
-    },
-    take: 3,
-    orderBy: {
-      createdAt: 'desc'
-    }
-  });
+  try {
+    [categories, featuredFinds, latestPosts] = await Promise.all([
+      prisma.category.findMany({ take: 6 }),
+      prisma.product.findMany({
+        where: { blogPostStatus: 'Published' },
+        include: { category: true },
+        take: 4,
+        orderBy: { dateAdded: 'desc' }
+      }),
+      prisma.blogPost.findMany({
+        where: { isPublished: true },
+        include: { category: true },
+        take: 3,
+        orderBy: { createdAt: 'desc' }
+      }),
+    ]);
+  } catch {
+    // Fall back to empty sections when DB is unavailable.
+  }
 
   // Fallback images if not provided
   const getCategoryImage = (name: string) => {

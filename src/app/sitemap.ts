@@ -1,20 +1,31 @@
 import { MetadataRoute } from 'next';
-import { prisma } from '@/lib/prisma';
+
+const baseUrl = 'https://www.shopthecuratedcart.com';
+
+const staticRoutes: MetadataRoute.Sitemap = ['', '/blog', '/top-picks', '/categories'].map((route) => ({
+  url: `${baseUrl}${route}`,
+  lastModified: new Date(),
+  changeFrequency: 'daily',
+  priority: 1.0,
+}));
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://www.shopthecuratedcart.com';
+  if (!process.env.DATABASE_URL) {
+    return staticRoutes;
+  }
 
   try {
-    // Fetch blog posts
-    const posts = await prisma.blogPost.findMany({
-      where: { isPublished: true },
-      select: { slug: true, updatedAt: true },
-    });
+    const { prisma } = await import('@/lib/prisma');
 
-    // Fetch categories
-    const categories = await prisma.category.findMany({
-      select: { id: true },
-    });
+    const [posts, categories] = await Promise.all([
+      prisma.blogPost.findMany({
+        where: { isPublished: true },
+        select: { slug: true, updatedAt: true },
+      }),
+      prisma.category.findMany({
+        select: { id: true },
+      }),
+    ]);
 
     const postUrls = posts.map((post) => ({
       url: `${baseUrl}/blog/${post.slug}`,
@@ -30,23 +41,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     }));
 
-    const routes = ['', '/blog', '/top-picks', '/categories'].map((route) => ({
-      url: `${baseUrl}${route}`,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
-      priority: 1.0,
-    }));
-
-    return [...routes, ...postUrls, ...categoryUrls];
-  } catch (error) {
-    console.error('Sitemap generation failed:', error);
-    return [
-      {
-        url: baseUrl,
-        lastModified: new Date(),
-        changeFrequency: 'daily',
-        priority: 1.0,
-      }
-    ];
+    return [...staticRoutes, ...postUrls, ...categoryUrls];
+  } catch {
+    return staticRoutes;
   }
 }

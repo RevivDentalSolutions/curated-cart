@@ -15,12 +15,21 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function BlogPage() {
-  const categories = await prisma.category.findMany();
-  const posts = await prisma.blogPost.findMany({
-    where: { isPublished: true },
-    include: { category: true },
-    orderBy: { createdAt: 'desc' }
-  });
+  let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
+  let posts: Awaited<ReturnType<typeof prisma.blogPost.findMany>> = [];
+
+  try {
+    [categories, posts] = await Promise.all([
+      prisma.category.findMany(),
+      prisma.blogPost.findMany({
+        where: { isPublished: true },
+        include: { category: true },
+        orderBy: { createdAt: 'desc' }
+      }),
+    ]);
+  } catch {
+    // Fall back to empty states when DB is unavailable.
+  }
 
   const getCategoryImage = (name: string) => {
     const images: {[key: string]: string} = {

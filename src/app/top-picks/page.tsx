@@ -15,16 +15,21 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function TopPicks() {
-  const categories = await prisma.category.findMany({
-    include: {
-      products: {
-        where: {
-          blogPostStatus: 'Published'
-        },
-        take: 3
+  let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
+  try {
+    categories = await prisma.category.findMany({
+      include: {
+        products: {
+          where: {
+            blogPostStatus: 'Published'
+          },
+          take: 3
+        }
       }
-    }
-  });
+    });
+  } catch {
+    // Fall back to empty states when DB is unavailable.
+  }
 
   const getCategoryImage = (name: string) => {
     const images: {[key: string]: string} = {
