@@ -42,19 +42,17 @@ FROM "_prisma_migrations"
 ORDER BY finished_at DESC NULLS LAST;
 ```
 
-## 3) Apply Prisma migrations safely (no reset)
+## 3) Prevent Vercel build failure (P3005) while preserving data
 
-This project now runs migrations during build via:
+Build no longer runs `prisma migrate deploy` automatically.
+
+Current build command:
 
 ```json
-"build": "prisma generate && prisma migrate deploy && next build"
+"build": "npx prisma generate && next build"
 ```
 
-You can also run it manually before deploy:
-
-```bash
-DATABASE_URL="...production..." npx prisma migrate deploy
-```
+This avoids Prisma `P3005` during Vercel builds on a pre-existing (non-empty) production database.
 
 ## 4) Manual SQL fallback (idempotent)
 
@@ -65,14 +63,31 @@ ALTER TABLE "Product"
 ADD COLUMN IF NOT EXISTS "image" TEXT;
 ```
 
-## 5) Post-fix verification
+## 5) Safe baseline strategy for an existing non-empty production DB
+
+If `_prisma_migrations` is out of sync with a live Neon database, baseline it with `migrate resolve` instead of reset:
+
+```bash
+# 1) Ensure schema patch exists first (manual SQL from section 4)
+# 2) Mark baseline migration as applied on production DB
+DATABASE_URL="...production..." npx prisma migrate resolve --applied 20260522000000_add_product_image_column
+```
+
+After baselining, future migrations can be applied in controlled/manual runs (outside Vercel build):
+
+```bash
+DATABASE_URL="...production..." npx prisma migrate deploy
+```
+
+## 6) Post-fix verification
 
 - Admin: create a product with `image` URL.
 - API: `GET /api/products` returns existing rows.
 - UI pages render previous products again.
 - Confirm no Prisma errors in Vercel runtime logs.
+- Confirm Vercel Production and Preview have different/intended `DATABASE_URL` values.
 
 ## Notes
 
 - Do **not** run `prisma migrate reset` in production.
-- `prisma migrate deploy` is non-destructive and only applies pending migrations.
+- Do **not** use `prisma db push --force-reset`, `DROP TABLE`, or destructive deletes in production recovery.
