@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Star, Heart } from 'lucide-react';
+import { ArrowRight, Heart } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { Metadata } from 'next';
 
@@ -13,6 +13,12 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = 'force-dynamic';
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
 export default async function Home() {
   let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
@@ -125,7 +131,7 @@ export default async function Home() {
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {categories.map((cat) => (
-              <Link href={`/categories/${cat.id}`} key={cat.id} className="group relative aspect-square overflow-hidden bg-brand-cream rounded-sm">
+              <Link href={`/categories/${slugify(cat.name)}`} key={cat.id} className="group relative aspect-square overflow-hidden bg-brand-cream rounded-sm">
                 <Image 
                   src={getCategoryImage(cat.name)} 
                   alt={cat.name} 
@@ -146,7 +152,7 @@ export default async function Home() {
       <section className="container mx-auto px-4">
         <div className="flex items-end justify-between mb-12">
           <div>
-            <span className="text-brand-gold uppercase tracking-[0.2em] text-[10px] font-bold">This Week's Cart Drop</span>
+            <span className="text-brand-gold uppercase tracking-[0.2em] text-[10px] font-bold">This Week&apos;s Cart Drop</span>
             <h2 className="text-4xl font-serif mt-2 text-brand-black">Latest Blog Posts</h2>
           </div>
           <Link href="/blog" className="nav-link flex items-center gap-2 group">

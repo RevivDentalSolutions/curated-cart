@@ -13,6 +13,12 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 export default async function CategoriesPage() {
   let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
   try {
@@ -49,7 +55,7 @@ export default async function CategoriesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {categories.map((cat) => (
-          <Link href={`/categories/${cat.id}`} key={cat.id} className="group relative h-96 overflow-hidden bg-brand-cream rounded-sm shadow-sm hover:shadow-xl transition-all border border-brand-blush">
+          <Link href={`/categories/${slugify(cat.name)}`} key={cat.id} className="group relative h-96 overflow-hidden bg-brand-cream rounded-sm shadow-sm hover:shadow-xl transition-all border border-brand-blush">
             <Image 
               src={getCategoryImage(cat.name)} 
               alt={cat.name} 
