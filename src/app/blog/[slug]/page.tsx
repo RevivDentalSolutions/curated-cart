@@ -4,6 +4,7 @@ import { ShoppingCart, ArrowLeft, Star, ThumbsUp, ThumbsDown, CheckCircle } from
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
+import { Prisma } from '@/generated/client';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -44,15 +45,28 @@ export const dynamic = 'force-dynamic';
 
 export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = await prisma.blogPost.findFirst({
-    where: { slug },
-    include: { 
-      category: true,
-      products: {
-        include: { category: true }
+
+  let post: Prisma.BlogPostGetPayload<{ include: { category: true; products: { include: { category: true } } } }> | null = null;
+  try {
+    post = await prisma.blogPost.findFirst({
+      where: { slug },
+      include: {
+        category: true,
+        products: {
+          include: { category: true }
+        }
       }
-    }
-  });
+    });
+  } catch (error) {
+    console.error('[blog/:slug] Runtime fetch failure', { slug, error });
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="text-center py-20 bg-brand-cream/30 rounded-sm italic text-brand-black/40">
+          We could not load this blog post right now. Please try again shortly.
+        </div>
+      </div>
+    );
+  }
 
   if (!post) {
     notFound();
