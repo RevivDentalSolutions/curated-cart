@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ArrowRight, ShoppingCart, Star } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { Metadata } from 'next';
+import { Prisma } from '@/generated/client';
 
 export const metadata: Metadata = {
   title: "Our Top Picks | Best of Amazon Finds",
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function TopPicks() {
-  let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
+  let categories: Prisma.CategoryGetPayload<{ include: { products: true } }>[] = [];
   try {
     categories = await prisma.category.findMany({
       include: {
