@@ -7,13 +7,15 @@ import { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const post = await prisma.blogPost.findUnique({
-    where: { slug },
-  });
 
-  if (!post) return {};
+  try {
+    const post = await prisma.blogPost.findFirst({
+      where: { slug },
+    });
 
-  return {
+    if (!post) return {};
+
+    return {
     title: post.metaTitle || post.title,
     description: post.metaDescription || undefined,
     alternates: {
@@ -32,13 +34,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       ]
     },
   };
+  } catch (error) {
+    console.error('[blog/:slug] Failed to load metadata', { slug, error });
+    return {};
+  }
 }
 
 export const dynamic = 'force-dynamic';
 
 export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = await prisma.blogPost.findUnique({
+  const post = await prisma.blogPost.findFirst({
     where: { slug },
     include: { 
       category: true,
