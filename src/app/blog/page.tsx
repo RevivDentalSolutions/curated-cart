@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { Metadata } from 'next';
+import { Prisma } from '@/generated/client';
 
 export const metadata: Metadata = {
   title: "The Library | Shopping Guides & Reviews",
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function BlogPage() {
   let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
-  let posts: Awaited<ReturnType<typeof prisma.blogPost.findMany>> = [];
+  let posts: Prisma.BlogPostGetPayload<{ include: { category: true } }>[] = [];
 
   try {
     [categories, posts] = await Promise.all([
@@ -72,7 +73,7 @@ export default async function BlogPage() {
             <Link href={`/blog/${post.slug}`} key={post.id} className="group">
               <div className="aspect-[4/3] overflow-hidden mb-6 bg-brand-nude relative">
                 <Image 
-                  src={post.featuredImage || getCategoryImage(post.category.name)} 
+                  src={post.featuredImage || getCategoryImage(post.category?.name ?? 'default')} 
                   alt={post.title} 
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -81,7 +82,7 @@ export default async function BlogPage() {
               </div>
               <div className="flex items-center gap-4 mb-3">
                 <span className="text-[9px] uppercase tracking-[0.2em] px-2 py-1 bg-brand-blush text-brand-black font-bold">
-                  {post.category.name}
+                  {post.category?.name ?? 'Uncategorized'}
                 </span>
                 <span className="text-[9px] uppercase tracking-[0.1em] text-brand-black/40">
                   {new Date(post.createdAt).toLocaleDateString()}
