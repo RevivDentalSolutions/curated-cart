@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ArrowRight, Heart } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { Metadata } from 'next';
+import { Prisma } from '@/generated/client';
 
 export const metadata: Metadata = {
   title: "The Curated Cart | Pretty finds. Practical buys.",
@@ -21,9 +22,9 @@ const slugify = (value: string) =>
     .replace(/^-+|-+$/g, '');
 
 export default async function Home() {
-  let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
-  let featuredFinds: Awaited<ReturnType<typeof prisma.product.findMany>> = [];
-  let latestPosts: Awaited<ReturnType<typeof prisma.blogPost.findMany>> = [];
+  let categories: Prisma.CategoryGetPayload<{}>[] = [];
+  let featuredFinds: Prisma.ProductGetPayload<{ include: { category: true } }>[] = [];
+  let latestPosts: Prisma.BlogPostGetPayload<{ include: { category: true } }>[] = [];
 
   try {
     [categories, featuredFinds, latestPosts] = await Promise.all([

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import { Metadata } from 'next';
+import { Prisma } from '@/generated/client';
 
 export const metadata: Metadata = {
   title: "Shop by Category | Curated Amazon Collections",
@@ -20,7 +21,7 @@ const slugify = (value: string) =>
     .replace(/^-+|-+$/g, '');
 
 export default async function CategoriesPage() {
-  let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
+  let categories: Prisma.CategoryGetPayload<{ include: { _count: { select: { products: true } } } }>[] = [];
   try {
     categories = await prisma.category.findMany({
       include: {
