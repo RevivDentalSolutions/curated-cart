@@ -30,14 +30,14 @@ export default async function Home() {
     [categories, featuredFinds, latestPosts] = await Promise.all([
       prisma.category.findMany({ take: 6 }),
       prisma.product.findMany({
-        where: { blogPostStatus: 'Published' },
+        where: { isPublished: true, isArchived: false },
         include: { category: true },
         take: 4,
         orderBy: { dateAdded: 'desc' }
       }),
       prisma.blogPost.findMany({
         where: { isPublished: true },
-        include: { category: true },
+        include: { category: true, products: true },
         take: 3,
         orderBy: { createdAt: 'desc' }
       }),
@@ -167,7 +167,7 @@ export default async function Home() {
               <Link href={`/blog/${post.slug}`} key={post.id} className="group">
                 <div className="relative aspect-[16/9] overflow-hidden mb-6 bg-brand-nude">
                   <Image 
-                    src={getCategoryImage(post.category.name)} 
+                    src={post.featuredImage || post.products?.[0]?.image || getCategoryImage(post.category.name)} 
                     alt={post.title} 
                     fill
                     sizes="(max-width: 768px) 100vw, 33vw"

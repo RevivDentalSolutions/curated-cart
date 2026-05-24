@@ -6,12 +6,14 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { Prisma } from '@/generated/client';
 
+const BRANDED_FALLBACK_IMAGE = "https://www.shopthecuratedcart.com/og-image.png";
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
 
   try {
     const post = await prisma.blogPost.findFirst({
-      where: { slug },
+      where: { slug, isPublished: true },
     });
 
     if (!post) return {};
@@ -28,11 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       url: `https://www.shopthecuratedcart.com/blog/${slug}`,
       type: 'article',
       publishedTime: post.createdAt.toISOString(),
-      images: [
-        {
-          url: post.featuredImage || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1600',
-        }
-      ]
+      images: [{ url: post.featuredImage || BRANDED_FALLBACK_IMAGE }]
     },
   };
   } catch (error) {
@@ -49,7 +47,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
   let post: Prisma.BlogPostGetPayload<{ include: { category: true; products: { include: { category: true } } } }> | null = null;
   try {
     post = await prisma.blogPost.findFirst({
-      where: { slug },
+      where: { slug, isPublished: true },
       include: {
         category: true,
         products: {
@@ -72,12 +70,14 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
     notFound();
   }
 
+  const heroImage = post.featuredImage || post.products?.[0]?.image || BRANDED_FALLBACK_IMAGE;
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
     headline: post.title,
     description: post.metaDescription || post.title,
-    image: post.featuredImage || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1600',
+    image: heroImage,
     datePublished: post.createdAt.toISOString(),
     dateModified: post.updatedAt.toISOString(),
     author: {
@@ -120,7 +120,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
       {/* Hero */}
       <div className="relative h-[60vh] bg-brand-nude/20">
         <Image 
-          src={getCategoryImage(post.category.name)} 
+          src={heroImage} 
           alt={post.title} 
           fill
           priority
