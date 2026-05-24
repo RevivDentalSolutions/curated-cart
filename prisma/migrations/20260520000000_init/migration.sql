@@ -12,10 +12,16 @@ CREATE TABLE "Category" (
 CREATE TABLE "Product" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "description" TEXT,
     "categoryId" TEXT NOT NULL,
     "image" TEXT,
     "amazonLink" TEXT,
     "affiliateLink" TEXT,
+    "isPublished" BOOLEAN NOT NULL DEFAULT false,
+    "isFeatured" BOOLEAN NOT NULL DEFAULT false,
+    "isArchived" BOOLEAN NOT NULL DEFAULT false,
+    "editorialStatus" TEXT NOT NULL DEFAULT 'Draft',
     "price" DOUBLE PRECISION,
     "source" TEXT,
     "viralTrendNotes" TEXT,
@@ -75,6 +81,9 @@ CREATE TABLE "_ProductBlogPosts" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Category_name_key" ON "Category"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Product_slug_key" ON "Product"("slug");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "BlogPost_slug_key" ON "BlogPost"("slug");
