@@ -1,77 +1,56 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
-import { Metadata } from 'next';
-import { Prisma } from '@/generated/client';
-
-export const metadata: Metadata = {
-  title: "Shop by Category | Curated Amazon Collections",
-  description: "Browse our hand-picked Amazon collections in Home Decor, Fashion, Skincare, and more.",
-  alternates: {
-    canonical: "https://www.shopthecuratedcart.com/categories",
-  },
-};
-
-export const dynamic = 'force-dynamic';
-
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+import { connection } from 'next/server';
+import ProductImage from '@/components/ProductImage';
+import { buildCategoryCards } from '@/lib/categories';
 
 export default async function CategoriesPage() {
-  let categories: Prisma.CategoryGetPayload<{ include: { _count: { select: { products: true } } } }>[] = [];
-  try {
-    categories = await prisma.category.findMany({
-      include: {
-        _count: {
-          select: { products: true }
-        }
-      }
-    });
-  } catch {
-    // Fall back to empty states when DB is unavailable.
-  }
+  await connection();
+  const categorySources = await prisma.category.findMany({
+    include: {
+      products: {
+        where: { published: true },
+        select: { id: true },
+      },
+    },
+  });
 
-  const getCategoryImage = (name: string) => {
-    const images: {[key: string]: string} = {
-      'Home Decor': 'https://images.unsplash.com/photo-1616489953149-75517454e9c3?auto=format&fit=crop&q=80&w=600',
-      'Fashion Finds': 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&q=80&w=600',
-      'Skincare': 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=600',
-      'Beauty Tools': 'https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?auto=format&fit=crop&q=80&w=600',
-      'Mom Life Favorites': 'https://images.unsplash.com/photo-1484981138541-3d074aa97716?auto=format&fit=crop&q=80&w=600',
-      'Under $25 Finds': 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&q=80&w=600',
-    };
-    return images[name] || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=600';
-  };
+  const categories = buildCategoryCards(categorySources);
 
   return (
     <div className="container mx-auto px-4 py-16">
-      <div className="text-center mb-20">
+      <div className="text-center mb-16">
         <span className="text-brand-gold uppercase tracking-[0.3em] text-[10px] font-bold">Curated Collections</span>
         <h1 className="text-5xl font-serif mt-4 mb-6 tracking-tighter text-brand-black">Shop by Category</h1>
         <div className="h-0.5 w-20 bg-brand-gold mx-auto mb-6"></div>
+        <p className="max-w-2xl mx-auto text-sm leading-7 text-brand-black/60">
+          Eight polished edits for a softer, prettier Amazon cart — from beauty staples to elevated home, kitchen, and mom-life finds.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {categories.map((cat) => (
-          <Link href={`/categories/${slugify(cat.name)}`} key={cat.id} className="group relative h-96 overflow-hidden bg-brand-cream rounded-sm shadow-sm hover:shadow-xl transition-all border border-brand-blush">
-            <Image 
-              src={getCategoryImage(cat.name)} 
-              alt={cat.name} 
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className="object-cover group-hover:scale-110 transition-transform duration-700 opacity-90" 
+          <Link
+            href={cat.href}
+            key={cat.slug}
+            className="group relative min-h-[22rem] overflow-hidden rounded-sm border border-white/60 bg-brand-cream shadow-sm transition-all duration-500 hover:-translate-y-1 hover:shadow-xl"
+          >
+            <ProductImage
+              src={cat.image}
+              alt={`${cat.name} curated category`}
+              className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-brand-black/80 via-brand-black/20 to-transparent flex flex-col justify-end p-8 text-left">
-              <span className="text-brand-gold text-[10px] uppercase tracking-[0.3em] font-bold mb-2">
-                {cat._count.products} Curated Items
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-black/75 via-brand-black/25 to-brand-cream/10"></div>
+            <div className="absolute inset-4 border border-white/25 transition-colors group-hover:border-brand-gold/70"></div>
+            <div className="absolute inset-x-0 bottom-0 p-7 text-left">
+              <span className="mb-3 inline-flex bg-brand-cream/90 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-brand-black backdrop-blur-sm">
+                {cat.itemCount} {cat.itemCount === 1 ? 'Curated Item' : 'Curated Items'}
               </span>
-              <h2 className="text-brand-cream text-3xl font-serif mb-4 group-hover:translate-x-2 transition-transform">
+              <h2 className="text-3xl font-serif text-brand-cream drop-shadow-sm transition-transform group-hover:translate-x-1">
                 {cat.name}
               </h2>
-              <div className="w-12 h-0.5 bg-brand-gold group-hover:w-24 transition-all"></div>
+              <div className="mt-4 h-0.5 w-12 bg-brand-gold transition-all group-hover:w-24"></div>
             </div>
           </Link>
         ))}

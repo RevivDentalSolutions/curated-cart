@@ -4,9 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_UNPOOLED")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Category {
@@ -17,46 +16,96 @@ model Category {
 }
 
 model Product {
-  id                  String         @id @default(cuid())
-  name                String
-  slug                String         @unique
-  description         String?
-  categoryId          String
-  image               String?
-  amazonLink          String?
-  affiliateLink       String?
-  isPublished         Boolean        @default(false)
-  isFeatured          Boolean        @default(false)
-  isArchived          Boolean        @default(false)
-  editorialStatus     String         @default("Draft")
-  price               Float?
-  source              String?
-  viralTrendNotes     String?
-  contentIdea         String?
-  blogPostStatus      String         @default("Needs Content")
-  pinStatus           String         @default("Pending")
-  tiktokStatus        String         @default("Pending")
-  commissionPotential String?
-  dateAdded           DateTime       @default(now())
-  contentBundle       ContentBundle?
-  category            Category       @relation(fields: [categoryId], references: [id])
-  blogPosts           BlogPost[]     @relation("ProductBlogPosts")
+  id                      String         @id @default(cuid())
+  name                    String
+  categoryId              String
+  amazonLink              String?
+  affiliateLink           String?
+  affiliatePlaceholderUrl String?
+  imageUrl                String?
+  amazonAsin              String?
+  rating                  Float?
+  reviewCount             Int?
+  price                   Float?
+  source                  String?
+  viralTrendNotes         String?
+  contentIdea             String?
+  blogPostStatus          String         @default("Needs Content")
+  published               Boolean        @default(true)
+  pinStatus               String         @default("Pending")
+  tiktokStatus            String         @default("Pending")
+  commissionPotential     String?
+  dateAdded               DateTime       @default(now())
+  contentBundle           ContentBundle?
+  category                Category       @relation(fields: [categoryId], references: [id])
+  blogPosts               BlogPost[]     @relation("ProductBlogPosts")
+  pinterestPins           PinterestPin[]
+
+  @@index([amazonAsin])
+  @@index([published, dateAdded])
+}
+
+enum ProductLeadStatus {
+  New
+  Approved
+  Rejected
+}
+
+model ProductLead {
+  id                      String            @id @default(cuid())
+  title                   String
+  source                  String
+  sourceUrl               String?
+  imageUrl                String?
+  trendKeyword            String?
+  suggestedCategory       String?
+  estimatedPrice          Float?
+  reasonItMightSell       String
+  viralityScore           Int               @default(0)
+  status                  ProductLeadStatus @default(New)
+  rating                  Float?
+  reviewCount             Int?
+  asin                    String?
+  affiliatePlaceholderUrl String?
+  createdAt               DateTime          @default(now())
+
+  @@index([status, createdAt])
+  @@index([sourceUrl])
+  @@index([asin])
+}
+
+model ScoutAutomationConfig {
+  id                          String    @id @default("default")
+  autoImportEnabled           Boolean   @default(false)
+  autoApproveHighScoringLeads Boolean   @default(false)
+  autoGenerateContentBundles  Boolean   @default(false)
+  highScoreThreshold          Int       @default(85)
+  rssFeeds                    String[]  @default([])
+  amazonMoversUrls            String[]  @default([])
+  tiktokKeywords              String[]  @default([])
+  pinterestKeywords           String[]  @default([])
+  productUrls                 String[]  @default([])
+  lastRunAt                   DateTime?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 }
 
 model BlogPost {
-  id              String    @id @default(cuid())
+  id              String         @id @default(cuid())
   title           String
   content         String?
-  slug            String    @unique
+  excerpt         String?
+  slug            String         @unique
   categoryId      String
   metaTitle       String?
   metaDescription String?
   featuredImage   String?
-  isPublished     Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  category        Category  @relation(fields: [categoryId], references: [id])
-  products        Product[] @relation("ProductBlogPosts")
+  isPublished     Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  category        Category       @relation(fields: [categoryId], references: [id])
+  products        Product[]      @relation("ProductBlogPosts")
+  pinterestPins   PinterestPin[]
 }
 
 model ContentBundle {
@@ -74,4 +123,37 @@ model ContentBundle {
   suggestedHashtags String?
   createdAt         DateTime @default(now())
   product           Product  @relation(fields: [productId], references: [id])
+}
+
+enum PinterestPinStatus {
+  Draft
+  Ready
+  Published
+  Failed
+}
+
+model PinterestPin {
+  id             String             @id @default(cuid())
+  productId      String?
+  blogPostId     String?
+  title          String
+  description    String
+  destinationUrl String
+  imageUrl       String?
+  imagePrompt    String?
+  altText        String
+  boardName      String
+  boardId        String?
+  status         PinterestPinStatus @default(Draft)
+  pinterestPinId String?
+  errorMessage   String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  product        Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
+  blogPost       BlogPost?          @relation(fields: [blogPostId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([productId])
+  @@index([blogPostId])
+  @@index([boardId])
 }

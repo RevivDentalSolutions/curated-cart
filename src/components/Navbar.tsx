@@ -23,9 +23,6 @@ export default function Navbar() {
             <Link href="/top-picks" className="text-brand-black hover:text-brand-gold px-3 py-2 text-sm font-medium transition-colors">
               Top Picks
             </Link>
-            <Link href="/dashboard" className="text-brand-black hover:text-brand-gold px-3 py-2 text-sm font-medium transition-colors">
-              Tracker
-            </Link>
           </div>
         </div>
       </div>

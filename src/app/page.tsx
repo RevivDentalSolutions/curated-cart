@@ -1,30 +1,34 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowRight, Heart } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import { Metadata } from 'next';
-import { Prisma } from '@/generated/client';
-
-export const metadata: Metadata = {
-  title: "The Curated Cart | Pretty finds. Practical buys.",
-  description: "Your daily dose of curated style. We find the most beautiful, practical, and viral Amazon products so you don't have to.",
-  alternates: {
-    canonical: "https://www.shopthecuratedcart.com",
-  },
-};
-
-export const dynamic = 'force-dynamic';
-
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+import { connection } from 'next/server';
+import ProductImage from '@/components/ProductImage';
+import { buildCategoryCards, getCategoryImage } from '@/lib/categories';
 
 export default async function Home() {
-  let categories: Prisma.CategoryGetPayload<{}>[] = [];
-  let featuredFinds: Prisma.ProductGetPayload<{ include: { category: true } }>[] = [];
-  let latestPosts: Prisma.BlogPostGetPayload<{ include: { category: true; products: { select: { id: true; name: true; image: true } } } }>[] = [];
+  await connection();
+  const categorySources = await prisma.category.findMany({
+    include: {
+      products: {
+        where: { published: true },
+        select: { id: true },
+      },
+    },
+  });
+  const categories = buildCategoryCards(categorySources);
+
+  const featuredFinds = await prisma.product.findMany({
+    where: {
+      published: true
+    },
+    include: {
+      category: true
+    },
+    take: 4,
+    orderBy: {
+      dateAdded: 'desc'
+    }
+  });
 
   try {
     [categories, featuredFinds, latestPosts] = await Promise.all([
@@ -54,19 +58,6 @@ export default async function Home() {
   } catch {
     // Fall back to empty sections when DB is unavailable.
   }
-
-  // Fallback images if not provided
-  const getCategoryImage = (name: string) => {
-    const images: {[key: string]: string} = {
-      'Home Decor': 'https://images.unsplash.com/photo-1616489953149-75517454e9c3?auto=format&fit=crop&q=80&w=400',
-      'Fashion Finds': 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&q=80&w=400',
-      'Skincare': 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=400',
-      'Beauty Tools': 'https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?auto=format&fit=crop&q=80&w=400',
-      'Mom Life Favorites': 'https://images.unsplash.com/photo-1484981138541-3d074aa97716?auto=format&fit=crop&q=80&w=400',
-      'Under $25 Finds': 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&q=80&w=400',
-    };
-    return images[name] || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=400';
-  };
 
   return (
     <div className="flex flex-col gap-20 pb-20">
@@ -100,12 +91,10 @@ export default async function Home() {
             {featuredFinds.map((item) => (
               <div key={item.id} className="luxury-card group overflow-hidden">
                 <div className="relative aspect-[4/5] overflow-hidden bg-brand-cream">
-                  <Image 
-                    src={item.image || getCategoryImage(item.category.name)} 
-                    alt={item.name} 
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-500" 
+                  <ProductImage
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
                   />
                   <button className="absolute top-4 right-4 p-2 bg-white/80 rounded-full text-brand-black hover:text-red-500 transition-colors">
                     <Heart size={16} />
@@ -139,18 +128,17 @@ export default async function Home() {
             <div className="h-0.5 w-20 bg-brand-gold mx-auto"></div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {categories.map((cat) => (
-              <Link href={`/categories/${slugify(cat.name)}`} key={cat.id} className="group relative aspect-square overflow-hidden bg-brand-cream rounded-sm">
-                <Image 
-                  src={getCategoryImage(cat.name)} 
-                  alt={cat.name} 
-                  fill
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 16vw"
-                  className="object-cover group-hover:scale-110 transition-transform duration-700 opacity-80" 
-                />
-                <div className="absolute inset-0 bg-brand-black/20 group-hover:bg-brand-black/40 transition-colors flex items-center justify-center p-4">
-                  <span className="text-white text-xs md:text-sm uppercase tracking-widest font-bold text-center border-b border-white/0 group-hover:border-white/100 transition-all">{cat.name}</span>
+              <Link href={cat.href} key={cat.slug} className="group relative aspect-[4/5] overflow-hidden bg-brand-cream rounded-sm shadow-sm">
+                <ProductImage src={cat.image} alt={`${cat.name} curated category`} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700 opacity-85" />
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-black/70 via-brand-black/20 to-transparent transition-colors group-hover:from-brand-black/80 flex items-end p-4">
+                  <div>
+                    <span className="block text-[9px] uppercase tracking-[0.2em] font-bold text-brand-gold mb-2">
+                      {cat.itemCount} {cat.itemCount === 1 ? 'item' : 'items'}
+                    </span>
+                    <span className="text-white text-xs md:text-sm uppercase tracking-widest font-bold border-b border-white/0 group-hover:border-white/100 transition-all">{cat.name}</span>
+                  </div>
                 </div>
               </Link>
             ))}
@@ -162,7 +150,7 @@ export default async function Home() {
       <section className="container mx-auto px-4">
         <div className="flex items-end justify-between mb-12">
           <div>
-            <span className="text-brand-gold uppercase tracking-[0.2em] text-[10px] font-bold">This Week&apos;s Cart Drop</span>
+            <span className="text-brand-gold uppercase tracking-[0.2em] text-[10px] font-bold">This Week&rsquo;s Cart Drop</span>
             <h2 className="text-4xl font-serif mt-2 text-brand-black">Latest Blog Posts</h2>
           </div>
           <Link href="/blog" className="nav-link flex items-center gap-2 group">
@@ -174,9 +162,9 @@ export default async function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {latestPosts.map((post) => (
               <Link href={`/blog/${post.slug}`} key={post.id} className="group">
-                <div className="relative aspect-[16/9] overflow-hidden mb-6 bg-brand-nude">
-                  <Image 
-                    src={post.featuredImage || post.products?.[0]?.image || getCategoryImage(post.category.name)} 
+                <div className="aspect-[16/9] overflow-hidden mb-6 bg-brand-nude">
+                  <img 
+                    src={post.featuredImage || getCategoryImage(post.category.name)} 
                     alt={post.title} 
                     fill
                     sizes="(max-width: 768px) 100vw, 33vw"
@@ -188,7 +176,7 @@ export default async function Home() {
                   {post.title}
                 </h3>
                 <p className="text-sm text-brand-black/70 line-clamp-2 leading-relaxed mb-6">
-                  {post.metaDescription}
+                  {post.excerpt || post.metaDescription}
                 </p>
                 <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-2 group-hover:gap-4 transition-all text-brand-black">
                   Read the Review <ArrowRight size={12} />

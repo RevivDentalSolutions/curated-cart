@@ -2,44 +2,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import { Metadata } from 'next';
-import { Prisma } from '@/generated/client';
-
-export const metadata: Metadata = {
-  title: "The Library | Shopping Guides & Reviews",
-  description: "Explore our curated library of Amazon finds, luxury dupes, and practical reviews for home, fashion, and beauty.",
-  alternates: {
-    canonical: "https://www.shopthecuratedcart.com/blog",
-  },
-};
-
-export const dynamic = 'force-dynamic';
+import { connection } from 'next/server';
 
 export default async function BlogPage() {
-  let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
-  let posts: Prisma.BlogPostGetPayload<{ include: { category: true; products: { select: { id: true; name: true; image: true } } } }>[] = [];
-
-  try {
-    [categories, posts] = await Promise.all([
-      prisma.category.findMany(),
-      prisma.blogPost.findMany({
-        where: { isPublished: true },
-        include: {
-          category: true,
-          products: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' }
-      }),
-    ]);
-  } catch {
-    // Fall back to empty states when DB is unavailable.
-  }
+  await connection();
+  const categories = await prisma.category.findMany();
+  const posts = await prisma.blogPost.findMany({
+    where: { isPublished: true },
+    include: { category: true },
+    orderBy: { createdAt: 'desc' }
+  });
 
   const getCategoryImage = (name: string) => {
     const images: {[key: string]: string} = {
@@ -80,9 +52,9 @@ export default async function BlogPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
           {posts.map((post) => (
             <Link href={`/blog/${post.slug}`} key={post.id} className="group">
-              <div className="aspect-[4/3] overflow-hidden mb-6 bg-brand-nude relative">
-                <Image 
-                  src={post.featuredImage || post.products[0]?.image || getCategoryImage(post.category?.name ?? 'default')} 
+              <div className="aspect-[4/3] overflow-hidden mb-6 bg-brand-nude">
+                <img 
+                  src={post.featuredImage || getCategoryImage(post.category.name)} 
                   alt={post.title} 
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -101,7 +73,7 @@ export default async function BlogPage() {
                 {post.title}
               </h2>
               <p className="text-sm text-brand-black/60 line-clamp-2 leading-relaxed mb-6">
-                {post.metaDescription}
+                {post.excerpt || post.metaDescription}
               </p>
               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 group-hover:gap-4 transition-all text-brand-black">
                 Read the Review <ArrowRight size={12} />

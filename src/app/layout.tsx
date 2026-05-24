@@ -3,7 +3,6 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.shopthecuratedcart.com"),
   title: {

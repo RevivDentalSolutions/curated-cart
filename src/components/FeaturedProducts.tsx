@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import ProductImage from '@/components/ProductImage';
 
 const products = [
   {
@@ -53,8 +53,8 @@ export default function FeaturedProducts() {
           {products.map((product) => (
             <div key={product.id} className="group flex flex-col bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
               <div className="relative aspect-[3/4] overflow-hidden">
-                <Image 
-                  src={product.image} 
+                <ProductImage
+                  src={product.image}
                   alt={product.name}
                   fill
                   sizes="(max-width: 768px) 100vw, 25vw"
