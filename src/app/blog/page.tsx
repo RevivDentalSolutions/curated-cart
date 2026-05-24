@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
@@ -55,12 +56,14 @@ export default async function BlogPage() {
                 <img 
                   src={post.featuredImage || getCategoryImage(post.category.name)} 
                   alt={post.title} 
-                  className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500" 
                 />
               </div>
               <div className="flex items-center gap-4 mb-3">
                 <span className="text-[9px] uppercase tracking-[0.2em] px-2 py-1 bg-brand-blush text-brand-black font-bold">
-                  {post.category.name}
+                  {post.category?.name ?? 'Uncategorized'}
                 </span>
                 <span className="text-[9px] uppercase tracking-[0.1em] text-brand-black/40">
                   {new Date(post.createdAt).toLocaleDateString()}

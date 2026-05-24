@@ -22,6 +22,49 @@ export default async function CategoryPage({ params }: { params: Promise<{ id: s
         where: { id },
       });
 
+  return categories.find((category) => slugify(category.name) === param) ?? null;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+
+  try {
+    const category = await findCategoryByParam(id);
+
+    if (!category) return {};
+
+    return {
+      title: `${category.name} | Curated Amazon Finds`,
+      description: `Explore our hand-picked selection of the best Amazon products in the ${category.name} category.`,
+      alternates: {
+        canonical: `https://www.shopthecuratedcart.com/categories/${slugify(category.name)}`,
+      },
+    };
+  } catch (error) {
+    console.error('[categories/:id] Failed to load metadata', { id, error });
+    return {};
+  }
+}
+
+export const dynamic = 'force-dynamic';
+
+export default async function CategoryPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  let category: Awaited<ReturnType<typeof findCategoryByParam>> = null;
+  try {
+    category = await findCategoryByParam(id);
+  } catch (error) {
+    console.error('[categories/:id] Runtime fetch failure', { id, error });
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="text-center py-20 bg-brand-cream/30 rounded-sm italic text-brand-black/40">
+          We could not load this category right now. Please try again shortly.
+        </div>
+      </div>
+    );
+  }
+
   if (!category) {
     if (collection) {
       return (

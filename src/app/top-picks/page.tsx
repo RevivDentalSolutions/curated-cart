@@ -15,8 +15,10 @@ export default async function TopPicks() {
         orderBy: { dateAdded: 'desc' },
         take: 3
       }
-    }
-  });
+    });
+  } catch {
+    // Fall back to empty states when DB is unavailable.
+  }
 
   const sections = categories.filter(cat => cat.products.length > 0);
 

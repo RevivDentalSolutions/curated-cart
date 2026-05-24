@@ -517,5 +517,6 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         </section>
       </div>
     </article>
+    </>
   );
 }

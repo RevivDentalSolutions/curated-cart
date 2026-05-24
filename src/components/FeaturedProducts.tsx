@@ -56,7 +56,9 @@ export default function FeaturedProducts() {
                 <ProductImage
                   src={product.image}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 25vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute top-4 left-4">
                   <span className="bg-brand-cream/90 backdrop-blur-sm text-brand-black text-[10px] font-bold uppercase tracking-widest px-3 py-1">

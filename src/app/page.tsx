@@ -30,18 +30,34 @@ export default async function Home() {
     }
   });
 
-  const latestPosts = await prisma.blogPost.findMany({
-    where: {
-      isPublished: true
-    },
-    include: {
-      category: true
-    },
-    take: 3,
-    orderBy: {
-      createdAt: 'desc'
-    }
-  });
+  try {
+    [categories, featuredFinds, latestPosts] = await Promise.all([
+      prisma.category.findMany({ take: 6 }),
+      prisma.product.findMany({
+        where: { isPublished: true, isArchived: false },
+        include: { category: true },
+        take: 4,
+        orderBy: { dateAdded: 'desc' }
+      }),
+      prisma.blogPost.findMany({
+        where: { isPublished: true },
+        include: {
+          category: true,
+          products: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+        take: 3,
+        orderBy: { createdAt: 'desc' }
+      }),
+    ]);
+  } catch {
+    // Fall back to empty sections when DB is unavailable.
+  }
 
   return (
     <div className="flex flex-col gap-20 pb-20">
@@ -150,7 +166,9 @@ export default async function Home() {
                   <img 
                     src={post.featuredImage || getCategoryImage(post.category.name)} 
                     alt={post.title} 
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500" 
                   />
                 </div>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-brand-gold font-bold">{post.category.name} • {new Date(post.createdAt).toLocaleDateString()}</span>
