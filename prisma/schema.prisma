@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Category {
@@ -18,10 +19,16 @@ model Category {
 model Product {
   id                  String         @id @default(cuid())
   name                String
+  slug                String         @unique
+  description         String?
   categoryId          String
   image               String?
   amazonLink          String?
   affiliateLink       String?
+  isPublished         Boolean        @default(false)
+  isFeatured          Boolean        @default(false)
+  isArchived          Boolean        @default(false)
+  editorialStatus     String         @default("Draft")
   price               Float?
   source              String?
   viralTrendNotes     String?

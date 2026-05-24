@@ -1,535 +1,90 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { 
-  Plus, Search, Filter, TrendingUp, FileText, 
-  Share2, Video, DollarSign, Calendar, CheckSquare,
-  Clock, AlertCircle, Loader2, ArrowRight
-} from 'lucide-react';
-import AIAssistant from '@/components/AIAssistant';
+import { useEffect, useMemo, useState } from 'react';
+
+type Category = { id: string; name: string };
+type Product = any;
+type BlogPost = any;
 
 export default function Dashboard() {
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [automationData, setAutomationData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeProduct, setActiveProduct] = useState<any>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showRoundupModal, setShowRoundupModal] = useState(false);
-  const [successPost, setSuccessPost] = useState<any>(null);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    categoryId: '',
-    amazonLink: '',
-    image: '',
-    price: '',
-    source: '',
-  });
-  const [roundupData, setRoundupData] = useState({
-    title: '',
-    categoryId: '',
-  });
+  const [products, setProducts] = useState<Product[]>([]);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+  const [message, setMessage] = useState('');
 
-  const fetchData = async () => {
-    try {
-      const [dashRes, autoRes, catRes] = await Promise.all([
-        fetch('/api/dashboard'),
-        fetch('/api/automations'),
-        fetch('/api/categories-list')
-      ]);
-      
-      const dashJson = await dashRes.json();
-      const autoJson = await autoRes.json();
-      const catJson = await catRes.json();
-      
-      if (dashJson.success) setDashboardData(dashJson.data);
-      if (autoJson.success) setAutomationData(autoJson.data);
-      if (catJson.success) setCategories(catJson.data);
-
-    } catch (error) {
-      console.error("Failed to fetch dashboard data", error);
-    } finally {
-      setLoading(false);
-    }
+  const load = async () => {
+    const [p, b, c] = await Promise.all([fetch('/api/products'), fetch('/api/blog-posts'), fetch('/api/categories-list')]);
+    setProducts((await p.json()).data || []);
+    setPosts((await b.json()).data || []);
+    setCategories((await c.json()).data || []);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { load(); }, []);
 
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newProduct),
-      });
-      const data = await res.json();
-      if (data.success) {
-      setShowAddModal(false);
-      setNewProduct({ name: '', categoryId: '', amazonLink: '', image: '', price: '', source: '' });
-      fetchData();
-      } else {
-        alert(data.error);
-      }
-    } catch (error) {
-      alert('Failed to add product');
-    }
+  const toggleSelect = (id: string) => setSelected((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]);
+  const save = async (text = 'Saved successfully') => { setMessage(text); await load(); setTimeout(() => setMessage(''), 2500); };
+
+  const bulkAction = async (action: string, editorialStatus?: string) => {
+    await fetch('/api/products', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: selected, action, data: { editorialStatus } }) });
+    setSelected([]); await save('Bulk update applied');
   };
 
-  const handleCreateRoundup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedProducts.length === 0) return;
-    
-    try {
-      const res = await fetch('/api/money-page-builder', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...roundupData,
-          productIds: selectedProducts,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setShowRoundupModal(false);
-        setSelectedProducts([]);
-        setRoundupData({ title: '', categoryId: '' });
-        setSuccessPost(data.data);
-        fetchData();
-      } else {
-        alert(data.error);
-      }
-    } catch (error) {
-      alert('Failed to create roundup post');
-    }
-  };
+  const orderedProducts = useMemo(() => editingPost?.products?.map((p: any) => p.id) || [], [editingPost]);
 
-  const toggleProductSelection = (productId: string) => {
-    setSelectedProducts(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
-  };
+  return <div className="container mx-auto px-4 py-10 space-y-8">
+    <h1 className="text-3xl font-serif">Admin Dashboard</h1>
+    {message && <div className="bg-green-100 border border-green-300 px-4 py-2 text-sm">{message}</div>}
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-brand-cream/50">
-        <Loader2 className="animate-spin text-brand-gold" size={48} />
+    <section className="space-y-3">
+      <h2 className="font-serif text-2xl">Products</h2>
+      <div className="flex gap-2 flex-wrap">
+        <button className="btn-outline" onClick={() => bulkAction('publish')}>Bulk Publish</button>
+        <button className="btn-outline" onClick={() => bulkAction('unpublish')}>Bulk Unpublish</button>
+        <button className="btn-outline" onClick={() => bulkAction('archive')}>Bulk Archive</button>
+        <button className="btn-outline" onClick={() => bulkAction('editorialStatus', 'Ready to Promote')}>Set Editorial: Ready to Promote</button>
       </div>
-    );
-  }
-
-  const stats = [
-    { label: 'Needs Content', value: dashboardData?.stats.needsContent || '0', icon: Clock, color: 'text-amber-600' },
-    { label: 'Ready to Promote', value: dashboardData?.stats.readyToPromote || '0', icon: CheckSquare, color: 'text-green-600' },
-    { label: 'Published', value: dashboardData?.stats.published || '0', icon: TrendingUp, color: 'text-blue-600' },
-    { label: 'Potential Commission', value: 'High', icon: DollarSign, color: 'text-brand-gold' },
-  ];
-
-  return (
-    <div className="bg-brand-cream/50 min-h-screen">
-      <div className="container mx-auto px-4 py-12">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
-          <div>
-            <h1 className="text-4xl font-serif mb-2 text-brand-black">Viral Product Tracker</h1>
-            <p className="text-sm text-brand-black/60 uppercase tracking-widest">Manage your finds & content strategy</p>
+      <div className="space-y-2">
+        {products.map((product) => <div key={product.id} className="border p-3 flex items-center justify-between gap-3">
+          <label className="flex items-center gap-2"><input type="checkbox" checked={selected.includes(product.id)} onChange={() => toggleSelect(product.id)} />{product.name}</label>
+          <div className="flex gap-2">
+            <button className="btn-outline" onClick={async () => { await fetch('/api/products', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: product.id, data: { isPublished: false } }) }); await save('Product unpublished'); }}>Unpublish</button>
+            <button className="btn-outline" onClick={async () => { await fetch('/api/products', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: product.id, data: { isPublished: true } }) }); await save('Product republished'); }}>Republish</button>
+            <button className="btn-outline" onClick={async () => { await fetch('/api/products', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: product.id, data: { isArchived: !product.isArchived } }) }); await save('Archive status updated'); }}>{product.isArchived ? 'Unarchive' : 'Archive'}</button>
+            <button className="btn-primary" onClick={() => setEditingProduct(product)}>Edit</button>
           </div>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus size={16} /> Add New Find
-          </button>
-        </div>
-
-        {showAddModal && (
-          <div className="fixed inset-0 bg-brand-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-sm shadow-xl p-8 animate-in fade-in zoom-in duration-300">
-              <h2 className="font-serif text-2xl mb-6 text-brand-black">Add New Amazon Find</h2>
-              <form onSubmit={handleAddProduct} className="space-y-4">
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Product Name</label>
-                  <input 
-                    required
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                    type="text" 
-                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Category</label>
-                  <select 
-                    required
-                    value={newProduct.categoryId}
-                    onChange={(e) => setNewProduct({...newProduct, categoryId: e.target.value})}
-                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm bg-white"
-                  >
-                    <option value="">Select Category</option>
-                    {categories.map((cat: any) => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Amazon Link</label>
-                  <input 
-                    value={newProduct.amazonLink}
-                    onChange={(e) => setNewProduct({...newProduct, amazonLink: e.target.value})}
-                    type="url" 
-                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Product Image URL</label>
-                  <input 
-                    value={newProduct.image}
-                    onChange={(e) => setNewProduct({...newProduct, image: e.target.value})}
-                    type="url" 
-                    placeholder="Unsplash, Amazon, etc."
-                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Price</label>
-                    <input 
-                      value={newProduct.price}
-                      onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                      type="number" step="0.01"
-                      className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Source</label>
-                    <input 
-                      value={newProduct.source}
-                      onChange={(e) => setNewProduct({...newProduct, source: e.target.value})}
-                      placeholder="TikTok, IG, etc."
-                      type="text" 
-                      className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-4 pt-4">
-                  <button 
-                    type="button" 
-                    onClick={() => setShowAddModal(false)}
-                    className="flex-grow btn-outline py-3"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="flex-grow btn-primary py-3"
-                  >
-                    Save Find
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {showRoundupModal && (
-          <div className="fixed inset-0 bg-brand-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-sm shadow-xl p-8 animate-in fade-in zoom-in duration-300">
-              <h2 className="font-serif text-2xl mb-2 text-brand-black">Create Roundup Post</h2>
-              <p className="text-xs text-brand-black/60 uppercase tracking-widest mb-6">Grouping {selectedProducts.length} selected products</p>
-              
-              <form onSubmit={handleCreateRoundup} className="space-y-4">
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Roundup Title</label>
-                  <input 
-                    required
-                    placeholder="e.g., 10 Home Decor Finds That Look Expensive"
-                    value={roundupData.title}
-                    onChange={(e) => setRoundupData({...roundupData, title: e.target.value})}
-                    type="text" 
-                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm" 
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-1 block">Post Category</label>
-                  <select 
-                    required
-                    value={roundupData.categoryId}
-                    onChange={(e) => setRoundupData({...roundupData, categoryId: e.target.value})}
-                    className="w-full border border-brand-blush p-3 text-sm focus:outline-none focus:border-brand-gold rounded-sm bg-white"
-                  >
-                    <option value="">Select Category</option>
-                    {categories.map((cat: any) => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="pt-2">
-                  <p className="text-[10px] uppercase font-bold tracking-widest text-brand-black/60 mb-2">Selected Products:</p>
-                  <div className="max-h-32 overflow-y-auto space-y-1 pr-2">
-                    {dashboardData?.lists.readyToPromote
-                      .filter((p: any) => selectedProducts.includes(p.id))
-                      .map((p: any) => (
-                        <div key={p.id} className="text-xs p-2 bg-brand-cream/30 border border-brand-blush rounded-sm flex justify-between items-center text-brand-black">
-                          <span className="truncate mr-2">{p.name}</span>
-                          <button 
-                            type="button"
-                            onClick={() => toggleProductSelection(p.id)}
-                            className="text-red-400 hover:text-red-600"
-                          >
-                            <Plus size={12} className="rotate-45" />
-                          </button>
-                        </div>
-                      ))
-                    }
-                  </div>
-                </div>
-
-                <div className="flex gap-4 pt-4">
-                  <button 
-                    type="button" 
-                    onClick={() => setShowRoundupModal(false)}
-                    className="flex-grow btn-outline py-3"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="flex-grow btn-primary py-3"
-                  >
-                    Build Money Page
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {successPost && (
-          <div className="mb-8 bg-green-50 border border-green-200 p-6 rounded-sm flex justify-between items-center animate-in fade-in slide-in-from-top-4 duration-500">
-            <div>
-              <h3 className="font-serif text-lg text-green-800">Post Created Successfully!</h3>
-              <p className="text-sm text-green-600 mt-1">
-                Your roundup post <span className="font-bold">"{successPost.title}"</span> is ready.
-              </p>
-              <div className="mt-4 flex gap-4">
-                <a 
-                  href={`/blog/${successPost.slug}`} 
-                  target="_blank" 
-                  className="text-xs uppercase tracking-widest font-bold text-brand-black hover:text-brand-gold flex items-center gap-2"
-                >
-                  View Draft Post <ArrowRight size={12} />
-                </a>
-              </div>
-            </div>
-            <button 
-              onClick={() => setSuccessPost(null)}
-              className="text-green-800 hover:text-green-600"
-            >
-              <Plus size={20} className="rotate-45" />
-            </button>
-          </div>
-        )}
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {stats.map((stat, i) => (
-            <div key={i} className="bg-white p-6 rounded-sm border border-brand-blush shadow-sm">
-              <div className="flex justify-between items-start mb-4">
-                <div className={`p-2 bg-brand-cream rounded-sm ${stat.color}`}>
-                  <stat.icon size={20} />
-                </div>
-              </div>
-              <p className="text-[10px] uppercase tracking-widest text-brand-black/40 font-bold">{stat.label}</p>
-              <h3 className="text-3xl font-serif mt-1 text-brand-black">{stat.value}</h3>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Tracker Table */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-sm border border-brand-blush shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-brand-blush flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="flex items-center gap-4">
-                  <h3 className="font-serif text-xl text-brand-black">Ready to Promote</h3>
-                  {selectedProducts.length > 0 && (
-                    <button 
-                      onClick={() => setShowRoundupModal(true)}
-                      className="bg-brand-gold text-brand-black px-4 py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest hover:bg-brand-black hover:text-brand-cream transition-colors animate-in fade-in slide-in-from-left-4 duration-300"
-                    >
-                      Create Roundup ({selectedProducts.length})
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                  <div className="relative flex-grow">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-black/40" />
-                    <input 
-                      type="text" 
-                      placeholder="Search products..." 
-                      className="w-full pl-9 pr-4 py-2 text-xs border border-brand-blush rounded-sm focus:outline-none focus:border-brand-gold"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="bg-brand-cream/50 text-[10px] uppercase tracking-widest font-bold text-brand-black/40 border-b border-brand-blush">
-                      <th className="px-6 py-4 w-10">
-                        <input 
-                          type="checkbox" 
-                          checked={dashboardData?.lists.readyToPromote.length > 0 && selectedProducts.length === dashboardData?.lists.readyToPromote.length}
-                          onChange={() => {
-                            if (selectedProducts.length === dashboardData?.lists.readyToPromote.length) {
-                              setSelectedProducts([]);
-                            } else {
-                              setSelectedProducts(dashboardData?.lists.readyToPromote.map((p: any) => p.id));
-                            }
-                          }}
-                          className="accent-brand-gold h-4 w-4 rounded border-brand-blush"
-                        />
-                      </th>
-                      <th className="px-6 py-4">Product</th>
-                      <th className="px-6 py-4">Category</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4">Date Added</th>
-                      <th className="px-6 py-4"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-blush">
-                    {dashboardData?.lists.readyToPromote.map((p: any, i: number) => (
-                      <tr key={i} className="hover:bg-brand-cream/20 transition-colors text-sm">
-                        <td className="px-6 py-4">
-                          <input 
-                            type="checkbox" 
-                            checked={selectedProducts.includes(p.id)}
-                            onChange={() => toggleProductSelection(p.id)}
-                            className="accent-brand-gold h-4 w-4 rounded border-brand-blush"
-                          />
-                        </td>
-                        <td className="px-6 py-4 font-bold text-brand-black">{p.name}</td>
-                        <td className="px-6 py-4 text-xs opacity-60 text-brand-black">{p.category?.name}</td>
-                        <td className="px-6 py-4">
-                          <span className="text-[10px] uppercase tracking-tighter px-2 py-1 rounded-full font-bold bg-green-100 text-green-700">
-                            {p.blogPostStatus}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-xs opacity-60 text-brand-black">{new Date(p.dateAdded).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 text-right">
-                          <button 
-                            onClick={() => setActiveProduct(p)}
-                            className="text-brand-gold hover:text-brand-black transition-colors"
-                          >
-                            <FileText size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {dashboardData?.lists.readyToPromote.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-sm text-brand-black/40 italic">
-                          No products ready to promote yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            {/* Needs Content Section */}
-            <div className="bg-white p-6 rounded-sm border border-brand-blush shadow-sm">
-              <div className="flex items-center gap-2 mb-6 text-brand-black">
-                <AlertCircle size={18} className="text-amber-600" />
-                <h3 className="font-serif text-xl">Needs Content</h3>
-              </div>
-              <div className="space-y-4">
-                {dashboardData?.lists.needsContent.map((p: any) => (
-                  <div key={p.id} className="flex items-center justify-between p-4 bg-brand-cream/30 border border-brand-blush rounded-sm group hover:border-brand-gold transition-colors">
-                    <div className="flex items-center gap-4 text-brand-black">
-                      <div>
-                        <h4 className="text-sm font-bold">{p.name}</h4>
-                        <p className="text-[10px] uppercase tracking-widest text-brand-black/40 font-bold mt-1">
-                          {p.category?.name} • {p.source || 'Viral Find'}
-                        </p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => setActiveProduct(p)}
-                      className="btn-outline py-2 px-4 text-[10px]"
-                    >
-                      Generate Content
-                    </button>
-                  </div>
-                ))}
-                {dashboardData?.lists.needsContent.length === 0 && (
-                  <p className="text-center text-sm text-brand-black/40 italic py-4">All caught up! No products need content.</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar / Checklist */}
-          <div className="space-y-8">
-            {/* Weekly Checklist */}
-            <div className="bg-brand-black text-brand-cream p-8 rounded-sm shadow-lg">
-              <div className="flex items-center gap-2 mb-6 text-brand-gold">
-                <CheckSquare size={20} />
-                <h3 className="font-serif text-2xl tracking-tighter">Weekly Checklist</h3>
-              </div>
-              <ul className="space-y-4">
-                {automationData?.checklist.map((task: any, i: number) => (
-                  <li key={i} className="space-y-2">
-                    <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-bold">
-                      <span className={task.completed ? 'text-brand-gold' : 'opacity-80'}>{task.task}</span>
-                      <span className="text-brand-gold">{task.current} / {task.target}</span>
-                    </div>
-                    <div className="h-1 bg-brand-cream/10 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-brand-gold transition-all duration-1000" 
-                        style={{ width: `${Math.min((task.current / task.target) * 100, 100)}%` }}
-                      ></div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Content Calendar Suggestion */}
-            <div className="bg-white p-6 rounded-sm border border-brand-blush shadow-sm text-brand-black">
-              <div className="flex items-center gap-2 mb-4">
-                <Calendar size={18} className="text-brand-gold" />
-                <h3 className="font-serif text-lg">Next Week's Plan</h3>
-              </div>
-              <div className="space-y-3">
-                {automationData?.calendar.slice(0, 3).map((day: any, i: number) => (
-                  <div key={i} className="p-4 bg-brand-cream/30 border-l-2 border-brand-gold rounded-r-sm">
-                    <h4 className="text-[10px] font-bold uppercase tracking-widest mb-1">{day.day} • {day.date}</h4>
-                    <p className="text-xs opacity-70">{day.suggestion}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        </div>)}
       </div>
+    </section>
 
-      {activeProduct && (
-        <AIAssistant 
-          product={activeProduct} 
-          onClose={() => {
-            setActiveProduct(null);
-            // Refresh data
-            window.location.reload();
-          }} 
-        />
-      )}
-    </div>
-  );
+    <section className="space-y-3">
+      <h2 className="font-serif text-2xl">Blog drafts/admin</h2>
+      {posts.map((post) => <div key={post.id} className="border p-3 flex items-center justify-between"><div>{post.title}</div><button className="btn-primary" onClick={() => setEditingPost(post)}>Edit Draft</button></div>)}
+    </section>
+
+    {editingProduct && <div className="fixed inset-0 bg-black/50 p-4 overflow-auto"><div className="bg-white max-w-2xl mx-auto p-6 space-y-3">
+      <h3 className="text-xl font-serif">Edit Product</h3>
+      {['name','slug','description','affiliateLink','image'].map((key) => <input key={key} className="w-full border p-2" placeholder={key} value={editingProduct[key] || ''} onChange={(e)=>setEditingProduct({...editingProduct,[key]:e.target.value})} />)}
+      <select className="w-full border p-2" value={editingProduct.categoryId} onChange={(e)=>setEditingProduct({...editingProduct,categoryId:e.target.value})}>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
+      <div className="grid grid-cols-3 gap-2">
+        <label><input type="checkbox" checked={!!editingProduct.isPublished} onChange={(e)=>setEditingProduct({...editingProduct,isPublished:e.target.checked})}/> Published</label>
+        <label><input type="checkbox" checked={!!editingProduct.isFeatured} onChange={(e)=>setEditingProduct({...editingProduct,isFeatured:e.target.checked})}/> Featured</label>
+        <label><input type="checkbox" checked={!!editingProduct.isArchived} onChange={(e)=>setEditingProduct({...editingProduct,isArchived:e.target.checked})}/> Archived</label>
+      </div>
+      <input className="w-full border p-2" placeholder="Editorial status" value={editingProduct.editorialStatus || ''} onChange={(e)=>setEditingProduct({...editingProduct,editorialStatus:e.target.value})} />
+      <div className="flex gap-2"><button className="btn-outline" onClick={()=>setEditingProduct(null)}>Cancel</button><button className="btn-primary" onClick={async()=>{await fetch('/api/products',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:editingProduct.id,data:editingProduct})});setEditingProduct(null);await save('Product updated successfully');}}>Save</button></div>
+    </div></div>}
+
+    {editingPost && <div className="fixed inset-0 bg-black/50 p-4 overflow-auto"><div className="bg-white max-w-3xl mx-auto p-6 space-y-3">
+      <h3 className="text-xl font-serif">Edit Blog Draft</h3>
+      {['title','slug','metaTitle','metaDescription','featuredImage'].map((key) => <input key={key} className="w-full border p-2" placeholder={key} value={editingPost[key] || ''} onChange={(e)=>setEditingPost({...editingPost,[key]:e.target.value})} />)}
+      <textarea className="w-full border p-2 min-h-40" placeholder="intro/body/content blocks" value={editingPost.content || ''} onChange={(e)=>setEditingPost({...editingPost,content:e.target.value})} />
+      <select className="w-full border p-2" value={editingPost.categoryId} onChange={(e)=>setEditingPost({...editingPost,categoryId:e.target.value})}>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
+      <label><input type="checkbox" checked={!!editingPost.isPublished} onChange={(e)=>setEditingPost({...editingPost,isPublished:e.target.checked})}/> Published</label>
+      <div><div className="font-semibold">Connected products (reorder)</div>{editingPost.products?.map((p:any,idx:number)=><div key={p.id} className="flex items-center gap-2 py-1"><span>{p.name}</span><button className="btn-outline" onClick={()=>{if(idx===0)return;const arr=[...editingPost.products];[arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]];setEditingPost({...editingPost,products:arr});}}>↑</button><button className="btn-outline" onClick={()=>{if(idx===editingPost.products.length-1)return;const arr=[...editingPost.products];[arr[idx],arr[idx+1]]=[arr[idx+1],arr[idx]];setEditingPost({...editingPost,products:arr});}}>↓</button></div>)}</div>
+      <div className="flex gap-2"><button className="btn-outline" onClick={()=>setEditingPost(null)}>Cancel</button><button className="btn-primary" onClick={async()=>{await fetch('/api/blog-posts',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:editingPost.id,data:{...editingPost,productIds:orderedProducts}})});setEditingPost(null);await save('Blog draft updated successfully');}}>Save changes</button></div>
+    </div></div>}
+  </div>;
 }

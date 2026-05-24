@@ -22,7 +22,7 @@ export default async function TopPicks() {
       include: {
         products: {
           where: {
-            blogPostStatus: 'Published'
+            isPublished: true, isArchived: false
           },
           take: 3
         }

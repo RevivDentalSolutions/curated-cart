@@ -28,6 +28,7 @@ async function findCategoryByParam(param: string) {
     where: { id: param },
     include: {
       products: {
+        where: { isPublished: true, isArchived: false },
         orderBy: { dateAdded: 'desc' },
       },
     },
@@ -38,6 +39,7 @@ async function findCategoryByParam(param: string) {
   const categories = await prisma.category.findMany({
     include: {
       products: {
+        where: { isPublished: true, isArchived: false },
         orderBy: { dateAdded: 'desc' },
       },
     },
