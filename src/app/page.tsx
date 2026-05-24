@@ -24,7 +24,7 @@ const slugify = (value: string) =>
 export default async function Home() {
   let categories: Prisma.CategoryGetPayload<{}>[] = [];
   let featuredFinds: Prisma.ProductGetPayload<{ include: { category: true } }>[] = [];
-  let latestPosts: Prisma.BlogPostGetPayload<{ include: { category: true } }>[] = [];
+  let latestPosts: Prisma.BlogPostGetPayload<{ include: { category: true; products: { select: { id: true; name: true; image: true } } } }>[] = [];
 
   try {
     [categories, featuredFinds, latestPosts] = await Promise.all([
@@ -37,7 +37,16 @@ export default async function Home() {
       }),
       prisma.blogPost.findMany({
         where: { isPublished: true },
-        include: { category: true, products: true },
+        include: {
+          category: true,
+          products: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
         take: 3,
         orderBy: { createdAt: 'desc' }
       }),

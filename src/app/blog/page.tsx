@@ -17,14 +17,23 @@ export const dynamic = 'force-dynamic';
 
 export default async function BlogPage() {
   let categories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
-  let posts: Prisma.BlogPostGetPayload<{ include: { category: true; products: true } }>[] = [];
+  let posts: Prisma.BlogPostGetPayload<{ include: { category: true; products: { select: { id: true; name: true; image: true } } } }>[] = [];
 
   try {
     [categories, posts] = await Promise.all([
       prisma.category.findMany(),
       prisma.blogPost.findMany({
         where: { isPublished: true },
-        include: { category: true, products: true },
+        include: {
+          category: true,
+          products: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' }
       }),
     ]);
