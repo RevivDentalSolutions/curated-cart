@@ -5,7 +5,6 @@ const products = [
     id: '1',
     name: 'Antique Brass Vanity Mirror',
     category: 'Home Decor',
-    price: '$45.00',
     image: 'https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=800&auto=format&fit=crop',
     link: '#',
   },
@@ -13,7 +12,6 @@ const products = [
     id: '2',
     name: 'Satin Slip Dress - Champagne',
     category: 'Fashion Finds',
-    price: '$28.99',
     image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=800&auto=format&fit=crop',
     link: '#',
   },
@@ -21,7 +19,6 @@ const products = [
     id: '3',
     name: 'Gua Sha & Roller Set',
     category: 'Skincare',
-    price: '$15.50',
     image: 'https://images.unsplash.com/photo-1601612620952-4043c5bc4a71?q=80&w=800&auto=format&fit=crop',
     link: '#',
   },
@@ -29,7 +26,6 @@ const products = [
     id: '4',
     name: 'Neutral Aesthetic Coffee Table Books',
     category: 'Home Decor',
-    price: '$32.00',
     image: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=800&auto=format&fit=crop',
     link: '#',
   },
@@ -70,7 +66,7 @@ export default function FeaturedProducts() {
                 <h3 className="font-serif text-lg font-bold text-brand-black mb-2 group-hover:text-brand-gold transition-colors">
                   {product.name}
                 </h3>
-                <p className="text-brand-gold font-bold mb-6">{product.price}</p>
+                <p className="text-brand-black/60 text-sm mb-6">Original editorial pick. Check retailer page for current details.</p>
                 <div className="mt-auto flex flex-col gap-3">
                   <a 
                     href={product.link}

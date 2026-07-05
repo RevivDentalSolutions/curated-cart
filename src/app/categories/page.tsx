@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
 import ProductImage from '@/components/ProductImage';

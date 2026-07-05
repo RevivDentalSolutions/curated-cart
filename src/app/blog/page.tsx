@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
@@ -56,9 +55,7 @@ export default async function BlogPage() {
                 <img 
                   src={post.featuredImage || getCategoryImage(post.category.name)} 
                   alt={post.title} 
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500" 
+                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" 
                 />
               </div>
               <div className="flex items-center gap-4 mb-3">

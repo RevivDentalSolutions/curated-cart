@@ -1,93 +1,45 @@
 import Link from 'next/link';
-import { ArrowRight, Star } from 'lucide-react';
-import { prisma } from '@/lib/prisma';
+import { ArrowRight } from 'lucide-react';
 import { connection } from 'next/server';
 import ProductImage from '@/components/ProductImage';
+import AffiliateDisclosureNotice from '@/components/AffiliateDisclosureNotice';
+import { prisma } from '@/lib/prisma';
+import { withAmazonAssociatesTag } from '@/lib/affiliate';
+
+export const dynamic = 'force-dynamic';
 
 export default async function TopPicks() {
   await connection();
   const categories = await prisma.category.findMany({
-    include: {
-      products: {
-        where: {
-          published: true
-        },
-        orderBy: { dateAdded: 'desc' },
-        take: 3
-      }
-    });
-  } catch {
-    // Fall back to empty states when DB is unavailable.
-  }
-
-  const sections = categories.filter(cat => cat.products.length > 0);
+    include: { products: { where: { published: true }, orderBy: { dateAdded: 'desc' } } },
+  });
+  const sections = categories.filter((category) => category.products.length > 0);
 
   return (
     <div className="container mx-auto px-4 py-16">
-      <div className="text-center mb-20">
-        <span className="text-brand-gold uppercase tracking-[0.3em] text-[10px] font-bold">The Best of Amazon</span>
-        <h1 className="text-5xl font-serif mt-4 mb-6 tracking-tighter text-brand-black">Our Top Picks</h1>
-        <p className="text-sm text-brand-black/60 max-w-lg mx-auto leading-relaxed">
-          The best finds, already sorted. We only feature products that meet our high standards for style, quality, and practicality.
-        </p>
+      <div className="mb-16 text-center">
+        <span className="text-brand-gold uppercase tracking-[0.3em] text-[10px] font-bold">The Best Finds</span>
+        <h1 className="text-5xl font-serif mt-4 mb-6 tracking-tighter text-brand-black">Top Picks</h1>
+        <p className="mx-auto max-w-lg text-sm leading-7 text-brand-black/60">Browse curated products by category. Prices are intentionally omitted unless available from an approved API.</p>
       </div>
-
-      {sections.length > 0 ? (
-        <div className="space-y-24">
-          {sections.map((section) => (
-            <section key={section.id}>
-              <div className="flex items-center gap-6 mb-12">
-                <h2 className="text-3xl font-serif whitespace-nowrap text-brand-black">{section.name}</h2>
-                <div className="h-px bg-brand-blush w-full"></div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {section.products.map((item) => (
-                  <div key={item.id} className="luxury-card group">
-                    <div className="relative aspect-square overflow-hidden bg-brand-cream">
-                      <ProductImage src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute top-4 left-4">
-                        <div className="flex bg-white/90 backdrop-blur-sm px-2 py-1 rounded-sm text-brand-gold">
-                          {[1, 2, 3, 4, 5].map((s) => <Star key={s} size={10} fill="currentColor" />)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="font-serif text-xl mb-2 text-brand-black">{item.name}</h3>
-                      <p className="text-brand-gold font-bold mb-6">{item.price ? `$${item.price}` : 'Check Price'}</p>
-                      <div className="flex gap-2">
-                        <a 
-                          href={item.amazonLink || '#'} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="btn-primary flex-grow text-[9px] py-3 text-center"
-                        >
-                          Add to Cart
-                        </a>
-                        <Link href="/blog" className="btn-outline text-[9px] py-3 px-4 flex items-center justify-center">
-                          <ArrowRight size={14} />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-20 bg-brand-cream/30 rounded-sm italic text-brand-black/40">
-          We are currently hand-picking the best finds for you.
-        </div>
-      )}
-
-      <div className="mt-32 bg-brand-blush/30 p-12 text-center rounded-sm max-w-4xl mx-auto border border-brand-blush shadow-inner">
-        <h3 className="text-3xl font-serif mb-6 text-brand-black">Didn&rsquo;t find what you were looking for?</h3>
-        <p className="text-sm opacity-70 mb-8 leading-relaxed max-w-md mx-auto text-brand-black">
-          Explore our full category library for more curated finds in home, fashion, beauty, and more.
-        </p>
-        <Link href="/categories" className="btn-primary inline-block">Browse All Categories</Link>
+      <AffiliateDisclosureNotice className="mb-10" />
+      <div className="space-y-20">
+        {sections.map((section) => (
+          <section key={section.id}>
+            <div className="mb-8 flex items-center gap-6"><h2 className="text-3xl font-serif text-brand-black">{section.name}</h2><div className="h-px flex-1 bg-brand-blush" /></div>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+              {section.products.map((item) => (
+                <article key={item.id} className="luxury-card overflow-hidden">
+                  <div className="aspect-square overflow-hidden bg-brand-cream"><ProductImage src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" /></div>
+                  <div className="p-6"><h3 className="font-serif text-xl text-brand-black">{item.name}</h3><p className="mt-3 text-sm leading-6 text-brand-black/65">{item.description || 'Curated affiliate find.'}</p><a href={withAmazonAssociatesTag(item.affiliateLink || item.amazonLink)} target="_blank" rel="sponsored noopener noreferrer" className="btn-primary mt-5 block py-3 text-center text-[10px]">Shop the Find</a></div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
+      {sections.length === 0 && <div className="text-center py-20 bg-brand-cream/30 italic text-brand-black/40">We are currently hand-picking the best finds for you.</div>}
+      <div className="mt-20 text-center"><Link href="/categories" className="btn-outline inline-flex items-center gap-2">Browse Categories <ArrowRight size={14} /></Link></div>
     </div>
   );
 }
