@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 
 const baseUrl = 'https://www.shopthecuratedcart.com';
 
-const staticRoutes: MetadataRoute.Sitemap = ['', '/blog', '/top-picks', '/categories'].map((route) => ({
+const staticRoutes: MetadataRoute.Sitemap = ['', '/blog', '/top-picks', '/categories', '/affiliate-disclosure', '/privacy-policy', '/contact'].map((route) => ({
   url: `${baseUrl}${route}`,
   lastModified: new Date(),
   changeFrequency: 'daily',

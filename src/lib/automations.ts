@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { startOfWeek, endOfWeek, addDays, format, isSameDay } from 'date-fns';
+import { startOfWeek, endOfWeek, addDays, format } from 'date-fns';
 
 export async function getWeeklyChecklist() {
   const now = new Date();

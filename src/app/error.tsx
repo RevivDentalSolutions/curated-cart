@@ -18,7 +18,7 @@ export default function Error({
     <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-6 px-4 text-center">
       <h2 className="text-4xl font-serif text-brand-black">Something went wrong</h2>
       <p className="text-brand-black/60 max-w-md">
-        We're having trouble loading this page right now. It might be a temporary glitch in the cart.
+        We&rsquo;re having trouble loading this page right now. It might be a temporary glitch in the cart.
       </p>
       <div className="flex gap-4">
         <button

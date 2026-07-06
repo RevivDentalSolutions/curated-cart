@@ -7,7 +7,9 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "vercel-build": "node scripts/vercel-build.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.63",
