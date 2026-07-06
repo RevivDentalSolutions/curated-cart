@@ -56,6 +56,28 @@ function revalidateBlogPages(slug?: string) {
   }
 }
 
+
+export async function GET(req: NextRequest) {
+  if (!isAdminRequest(req)) {
+    return unauthorizedAdminResponse();
+  }
+
+  try {
+    const posts = await prisma.blogPost.findMany({
+      include: {
+        category: true,
+        products: { select: { id: true, name: true, imageUrl: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
+    });
+    return NextResponse.json({ success: true, data: posts });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to load blog posts';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (!isAdminRequest(req)) {
     return unauthorizedAdminResponse();

@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const products = await prisma.product.findMany({
-      include: { category: true },
+      include: { category: true, contentBundle: true, blogPosts: { orderBy: { createdAt: 'desc' }, take: 1, include: { products: { select: { id: true, name: true } } } } },
       orderBy: { dateAdded: 'desc' },
     });
     return NextResponse.json({ success: true, data: products });
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, description, categoryId, imageUrl, affiliateLink, amazonLink, published } = body;
+    const { name, description, categoryId, imageUrl, affiliateLink, amazonLink, affiliatePlaceholderUrl, amazonAsin, source, viralTrendNotes, contentIdea, blogPostStatus, pinStatus, tiktokStatus, published } = body;
 
     if (!clean(name) || !clean(categoryId) || !clean(imageUrl) || !clean(affiliateLink || amazonLink)) {
       return NextResponse.json({ error: 'Title, category, image URL, and affiliate URL are required.' }, { status: 400 });
@@ -54,8 +54,15 @@ export async function POST(req: NextRequest) {
         imageUrl: clean(imageUrl),
         affiliateLink: link,
         amazonLink: link,
+        affiliatePlaceholderUrl: clean(affiliatePlaceholderUrl),
+        amazonAsin: clean(amazonAsin),
+        source: clean(source),
+        viralTrendNotes: clean(viralTrendNotes),
+        contentIdea: clean(contentIdea),
+        blogPostStatus: clean(blogPostStatus) || 'Needs Content',
+        pinStatus: clean(pinStatus) || 'Needs Pin',
+        tiktokStatus: clean(tiktokStatus) || 'Pending',
         published: typeof published === 'boolean' ? published : true,
-        blogPostStatus: 'Needs Content',
       },
     });
 
@@ -72,7 +79,7 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, name, description, categoryId, imageUrl, affiliateLink, amazonLink, published } = body;
+    const { id, name, description, categoryId, imageUrl, affiliateLink, amazonLink, affiliatePlaceholderUrl, amazonAsin, source, viralTrendNotes, contentIdea, blogPostStatus, pinStatus, tiktokStatus, published } = body;
     if (!clean(id)) return NextResponse.json({ error: 'Product id is required.' }, { status: 400 });
 
     const link = affiliateLink !== undefined || amazonLink !== undefined ? clean(affiliateLink) || clean(amazonLink) : undefined;
@@ -85,6 +92,14 @@ export async function PATCH(req: NextRequest) {
         imageUrl: imageUrl !== undefined ? clean(imageUrl) : undefined,
         affiliateLink: link,
         amazonLink: link,
+        affiliatePlaceholderUrl: affiliatePlaceholderUrl !== undefined ? clean(affiliatePlaceholderUrl) : undefined,
+        amazonAsin: amazonAsin !== undefined ? clean(amazonAsin) : undefined,
+        source: source !== undefined ? clean(source) : undefined,
+        viralTrendNotes: viralTrendNotes !== undefined ? clean(viralTrendNotes) : undefined,
+        contentIdea: contentIdea !== undefined ? clean(contentIdea) : undefined,
+        blogPostStatus: blogPostStatus !== undefined ? clean(blogPostStatus) || undefined : undefined,
+        pinStatus: pinStatus !== undefined ? clean(pinStatus) || undefined : undefined,
+        tiktokStatus: tiktokStatus !== undefined ? clean(tiktokStatus) || undefined : undefined,
         published: typeof published === 'boolean' ? published : undefined,
       },
       include: { category: true },
