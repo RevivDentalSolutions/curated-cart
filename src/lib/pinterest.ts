@@ -1,3 +1,4 @@
+import { withAmazonAssociatesTag } from './affiliate';
 import { prisma } from '@/lib/prisma';
 
 const PINTEREST_API_BASE = 'https://api.pinterest.com/v5';
@@ -35,7 +36,8 @@ function boardSuggestion(categoryName?: string | null) {
 
 function destinationForProduct(product: Awaited<ReturnType<typeof prisma.product.findUnique>>) {
   if (!product) return siteUrl();
-  return product.affiliateLink || product.amazonLink || product.affiliatePlaceholderUrl || `${siteUrl()}/categories/${product.categoryId}`;
+  const destination = product.affiliateLink || product.amazonLink || product.affiliatePlaceholderUrl;
+  return destination ? withAmazonAssociatesTag(destination) : `${siteUrl()}/categories/${product.categoryId}`;
 }
 
 function pinDraftsFromSeed(seed: DraftSeed) {
