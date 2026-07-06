@@ -44,15 +44,15 @@ ORDER BY finished_at DESC NULLS LAST;
 
 ## 3) Vercel build migrations
 
-The Vercel build now runs pending Prisma migrations before `next build` whenever `DATABASE_URL` is configured.
+Vercel now uses a dedicated deployment build command instead of hiding production migrations inside the local `npm run build` command.
 
-Current build command:
+Current Vercel build command:
 
 ```json
-"build": "prisma generate && node scripts/run-prisma-migrations-if-configured.mjs && next build"
+"buildCommand": "npm run vercel-build"
 ```
 
-This uses `prisma migrate deploy` only. Do **not** use `prisma migrate dev` in production. If a pre-existing production database has broken migration history, baseline it first with `migrate resolve` as described below, then redeploy.
+`npm run vercel-build` runs `prisma generate`, then `prisma migrate deploy`, then `next build`. This uses `prisma migrate deploy` only. Do **not** use `prisma migrate dev` in production. If a pre-existing production database has broken migration history, baseline it first with `migrate resolve` as described below, then redeploy.
 
 ## 4) Manual SQL fallback (idempotent)
 
