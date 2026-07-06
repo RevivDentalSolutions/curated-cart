@@ -3,17 +3,18 @@ import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
 import ProductImage from '@/components/ProductImage';
 import { buildCategoryCards } from '@/lib/categories';
+import { fallbackCategories } from '@/lib/homepage-fallback';
 
 export default async function CategoriesPage() {
   await connection();
-  const categorySources = await prisma.category.findMany({
+  const categorySources = process.env.DATABASE_URL ? await prisma.category.findMany({
     include: {
       products: {
         where: { published: true },
         select: { id: true },
       },
     },
-  });
+  }) : fallbackCategories;
 
   const categories = buildCategoryCards(categorySources);
 

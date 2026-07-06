@@ -5,14 +5,16 @@ import ProductImage from '@/components/ProductImage';
 import AffiliateDisclosureNotice from '@/components/AffiliateDisclosureNotice';
 import { prisma } from '@/lib/prisma';
 import { withAmazonAssociatesTag } from '@/lib/affiliate';
+import { fallbackCategories, fallbackFeaturedFinds } from '@/lib/homepage-fallback';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TopPicks() {
   await connection();
-  const categories = await prisma.category.findMany({
+  const hasDatabase = Boolean(process.env.DATABASE_URL);
+  const categories = hasDatabase ? await prisma.category.findMany({
     include: { products: { where: { published: true }, orderBy: { dateAdded: 'desc' } } },
-  });
+  }) : fallbackCategories.map((category) => ({ ...category, products: fallbackFeaturedFinds.filter((product) => product.categoryId === category.id) }));
   const sections = categories.filter((category) => category.products.length > 0);
 
   return (

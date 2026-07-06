@@ -7,12 +7,13 @@ import AffiliateDisclosureNotice from '@/components/AffiliateDisclosureNotice';
 import { prisma } from '@/lib/prisma';
 import { getCategoryImage } from '@/lib/categories';
 import { withAmazonAssociatesTag } from '@/lib/affiliate';
+import { fallbackLatestPosts } from '@/lib/homepage-fallback';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const post = await prisma.blogPost.findUnique({ where: { slug } });
+  const post = process.env.DATABASE_URL ? await prisma.blogPost.findUnique({ where: { slug } }) : fallbackLatestPosts.find((item) => item.slug === slug);
   if (!post) return {};
   return { title: post.metaTitle || post.title, description: post.metaDescription || post.excerpt || undefined };
 }
@@ -20,10 +21,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   await connection();
   const { slug } = await params;
-  const post = await prisma.blogPost.findUnique({
+  const post = process.env.DATABASE_URL ? await prisma.blogPost.findUnique({
     where: { slug },
     include: { category: true, products: { include: { category: true } } },
-  });
+  }) : fallbackLatestPosts.find((item) => item.slug === slug);
 
   if (!post || !post.isPublished) notFound();
 

@@ -62,7 +62,7 @@ const emptyProduct = {
 };
 
 const emptyManualPost = {
-  title: '', slug: '', categoryId: '', featuredImage: '', excerpt: '', content: '', metaTitle: '', metaDescription: '', isPublished: false,
+  id: '', title: '', slug: '', categoryId: '', featuredImage: '', excerpt: '', content: '', metaTitle: '', metaDescription: '', isPublished: false, productIds: [] as string[],
 };
 
 const emptyCollectionPost = {
@@ -96,6 +96,7 @@ export default function AdminDashboard() {
   const [pins, setPins] = useState<Pin[]>([]);
   const [form, setForm] = useState(emptyProduct);
   const [manualPost, setManualPost] = useState(emptyManualPost);
+  const [blogEditor, setBlogEditor] = useState(emptyManualPost);
   const [collectionPost, setCollectionPost] = useState(emptyCollectionPost);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
@@ -209,8 +210,9 @@ export default function AdminDashboard() {
 
   async function toggleBlogPost(post: BlogPost) {
     const productId = post.products?.[0]?.id;
-    if (!productId) return alert('This post is not connected to a product. Use Blog Drafts editing later.');
-    const res = await fetch(`/api/products/${productId}/blog-post`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ postId: post.id, isPublished: !post.isPublished }) });
+    const endpoint = productId ? `/api/products/${productId}/blog-post` : '/api/blog-posts';
+    const body = productId ? { postId: post.id, isPublished: !post.isPublished } : { id: post.id, isPublished: !post.isPublished };
+    const res = await fetch(endpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await res.json();
     if (!data.success) alert(data.error || 'Unable to update blog post');
     await loadData();
@@ -224,6 +226,41 @@ export default function AdminDashboard() {
     if (data.success) setManualPost(emptyManualPost); else alert(data.error || 'Unable to create manual post');
     await loadData();
     setBusyAction(null);
+  }
+
+  function editBlogPost(post: BlogPost & { content?: string | null; excerpt?: string | null; metaTitle?: string | null; metaDescription?: string | null; featuredImage?: string | null; categoryId?: string }) {
+    setBlogEditor({
+      id: post.id,
+      title: post.title || '',
+      slug: post.slug || '',
+      categoryId: post.categoryId || post.category?.id || '',
+      featuredImage: post.featuredImage || '',
+      excerpt: post.excerpt || '',
+      content: post.content || '',
+      metaTitle: post.metaTitle || '',
+      metaDescription: post.metaDescription || '',
+      isPublished: post.isPublished,
+      productIds: post.products?.map((product) => product.id) || [],
+    });
+  }
+
+  async function saveBlogPost(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!blogEditor.id) return alert('Choose a blog post to edit first.');
+    setBusyAction('save-blog-post');
+    const res = await fetch('/api/blog-posts', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(blogEditor) });
+    const data = await res.json();
+    if (data.success) setBlogEditor(emptyManualPost); else alert(data.error || 'Unable to update blog post');
+    await loadData();
+    setBusyAction(null);
+  }
+
+  async function deleteBlogPost(id: string) {
+    if (!confirm('Delete this blog post? This cannot be undone.')) return;
+    const res = await fetch(`/api/blog-posts?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!data.success) alert(data.error || 'Unable to delete blog post');
+    await loadData();
   }
 
   async function generateCollectionDraft() {
@@ -330,7 +367,9 @@ export default function AdminDashboard() {
         <section className="grid gap-8 xl:grid-cols-2">
           <div className="rounded-sm border border-brand-blush bg-white p-6 shadow-sm">
             <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-gold">3. Blog Drafts</span><h2 className="mt-1 text-3xl font-serif">Drafts and publishing</h2>
-            <div className="mt-5 space-y-3">{blogPosts.map((post) => <div key={post.id} className="rounded-sm border border-brand-blush p-4"><div className="flex items-start justify-between gap-4"><div><h3 className="font-serif text-lg">{post.title}</h3><p className="mt-1 text-xs text-brand-black/55">{post.isPublished ? 'Published' : 'Draft'} • {post.products?.map((p) => p.name).join(', ') || 'No connected products'}</p></div><div className="flex gap-2"><Link href={`/blog/${post.slug}`} className="btn-outline px-3 py-2 text-[10px]">Preview</Link><button onClick={() => toggleBlogPost(post)} className="btn-primary px-3 py-2 text-[10px]">{post.isPublished ? 'Unpublish' : 'Publish'}</button></div></div></div>)}</div>
+            <div className="mt-5 space-y-3">{blogPosts.map((post) => <div key={post.id} className="rounded-sm border border-brand-blush p-4"><div className="flex items-start justify-between gap-4"><div><h3 className="font-serif text-lg">{post.title}</h3><p className="mt-1 text-xs text-brand-black/55">{post.isPublished ? 'Published' : 'Draft'} • {post.products?.map((p) => p.name).join(', ') || 'No connected products'}</p></div><div className="flex flex-wrap gap-2"><Link href={`/blog/${post.slug}`} className="btn-outline px-3 py-2 text-[10px]">Preview</Link><button onClick={() => editBlogPost(post as any)} className="btn-outline px-3 py-2 text-[10px]">Edit</button><button onClick={() => toggleBlogPost(post)} className="btn-primary px-3 py-2 text-[10px]">{post.isPublished ? 'Unpublish' : 'Publish'}</button><button onClick={() => deleteBlogPost(post.id)} className="btn-outline px-3 py-2 text-[10px]">Delete</button></div></div></div>)}</div>
+
+            {blogEditor.id && <form onSubmit={saveBlogPost} className="mt-8 grid gap-3 rounded-sm border border-brand-blush bg-brand-cream/20 p-4"><h3 className="font-serif text-xl">Edit blog post</h3><Input label="Title" required value={blogEditor.title} onChange={(value) => setBlogEditor({ ...blogEditor, title: value })} /><Input label="Slug" value={blogEditor.slug} onChange={(value) => setBlogEditor({ ...blogEditor, slug: value })} /><Textarea label="Excerpt" value={blogEditor.excerpt} onChange={(value) => setBlogEditor({ ...blogEditor, excerpt: value })} /><Textarea label="Body/content" value={blogEditor.content} onChange={(value) => setBlogEditor({ ...blogEditor, content: value })} /><label className="space-y-1 text-xs font-bold uppercase tracking-widest text-brand-black/60">Connected products<select multiple value={blogEditor.productIds} onChange={(e) => setBlogEditor({ ...blogEditor, productIds: Array.from(e.target.selectedOptions).map((option) => option.value) })} className="min-h-32 w-full border border-brand-blush bg-white p-3 text-sm font-normal normal-case tracking-normal">{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select></label><label className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest"><input type="checkbox" checked={blogEditor.isPublished} onChange={(e) => setBlogEditor({ ...blogEditor, isPublished: e.target.checked })} className="h-4 w-4 accent-brand-gold" /> Published</label><div className="grid gap-2 md:grid-cols-2"><button type="button" onClick={() => setBlogEditor(emptyManualPost)} className="btn-outline py-3">Cancel</button><button disabled={busyAction === 'save-blog-post'} className="btn-primary py-3">Save Blog Post</button></div></form>}
             <form onSubmit={createManualPost} className="mt-8 grid gap-3"><h3 className="font-serif text-xl">Create manual post</h3><Input label="Title" required value={manualPost.title} onChange={(value) => setManualPost({ ...manualPost, title: value })} /><Input label="Slug" value={manualPost.slug} onChange={(value) => setManualPost({ ...manualPost, slug: value })} /><label className="space-y-1 text-xs font-bold uppercase tracking-widest text-brand-black/60">Category<select required value={manualPost.categoryId} onChange={(e) => setManualPost({ ...manualPost, categoryId: e.target.value })} className="w-full border border-brand-blush bg-white p-3 text-sm font-normal normal-case tracking-normal"><option value="">Choose category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><Textarea label="Post content" value={manualPost.content} onChange={(value) => setManualPost({ ...manualPost, content: value })} /><button disabled={busyAction === 'manual-post'} className="btn-primary py-3">Save Manual Blog Draft</button></form>
           </div>
 

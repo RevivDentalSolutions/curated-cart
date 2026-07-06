@@ -2,15 +2,17 @@ import Link from 'next/link';
 import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
+import { fallbackCategories, fallbackLatestPosts } from '@/lib/homepage-fallback';
 
 export default async function BlogPage() {
   await connection();
-  const categories = await prisma.category.findMany();
-  const posts = await prisma.blogPost.findMany({
+  const hasDatabase = Boolean(process.env.DATABASE_URL);
+  const categories = hasDatabase ? await prisma.category.findMany() : fallbackCategories;
+  const posts = hasDatabase ? await prisma.blogPost.findMany({
     where: { isPublished: true },
     include: { category: true },
     orderBy: { createdAt: 'desc' }
-  });
+  }) : fallbackLatestPosts;
 
   const getCategoryImage = (name: string) => {
     const images: {[key: string]: string} = {

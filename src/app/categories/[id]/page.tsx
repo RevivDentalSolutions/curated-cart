@@ -6,6 +6,7 @@ import AffiliateDisclosureNotice from '@/components/AffiliateDisclosureNotice';
 import { prisma } from '@/lib/prisma';
 import { categoryNamesForSlug, getCategoryCollection, getCategoryImage, getDisplayCategoryName } from '@/lib/categories';
 import { withAmazonAssociatesTag } from '@/lib/affiliate';
+import { fallbackCategories, fallbackFeaturedFinds } from '@/lib/homepage-fallback';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,18 +20,21 @@ export default async function CategoryPage({ params }: { params: Promise<{ id: s
   await connection();
   const { id } = await params;
   const collection = getCategoryCollection(id);
-  const category = collection
-    ? await prisma.category.findFirst({ where: { name: { in: categoryNamesForSlug(collection.slug) } } })
-    : await prisma.category.findUnique({ where: { id } });
+  const hasDatabase = Boolean(process.env.DATABASE_URL);
+  const category = hasDatabase
+    ? collection
+      ? await prisma.category.findFirst({ where: { name: { in: categoryNamesForSlug(collection.slug) } } })
+      : await prisma.category.findUnique({ where: { id } })
+    : fallbackCategories.find((cat) => cat.id === id || getCategoryCollection(id)?.slug === collection?.slug) || null;
 
   if (!category && !collection) notFound();
 
   const displayName = collection?.name || getDisplayCategoryName(category!.name);
   const categoryNames = collection ? categoryNamesForSlug(collection.slug) : [category!.name];
-  const products = await prisma.product.findMany({
+  const products = hasDatabase ? await prisma.product.findMany({
     where: { published: true, category: { name: { in: categoryNames } } },
     orderBy: { dateAdded: 'desc' },
-  });
+  }) : fallbackFeaturedFinds.filter((product) => product.categoryId === category?.id || categoryNames.includes(product.category.name));
 
   return (
     <div className="container mx-auto px-4 py-16">

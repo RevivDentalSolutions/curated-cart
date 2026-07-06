@@ -12,17 +12,17 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, '') || 'blog-post';
 }
 
-async function uniqueSlug(value: string) {
+async function uniqueSlug(value: string, currentPostId?: string) {
   const baseSlug = slugify(value);
   let slug = baseSlug;
   let suffix = 2;
 
-  while (await prisma.blogPost.findUnique({ where: { slug }, select: { id: true } })) {
+  while (true) {
+    const existingPost = await prisma.blogPost.findUnique({ where: { slug }, select: { id: true } });
+    if (!existingPost || existingPost.id === currentPostId) return slug;
     slug = `${baseSlug}-${suffix}`;
     suffix += 1;
   }
-
-  return slug;
 }
 
 function cleanString(value: unknown) {
@@ -224,6 +224,66 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to create blog post';
     console.error('Blog post creation error:', error);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+
+export async function PATCH(req: NextRequest) {
+  if (!isAdminRequest(req)) {
+    return unauthorizedAdminResponse();
+  }
+
+  try {
+    const body = await req.json();
+    const id = cleanString(body?.id);
+    if (!id) return NextResponse.json({ error: 'Blog post id is required.' }, { status: 400 });
+
+    const title = cleanString(body?.title);
+    const categoryId = cleanString(body?.categoryId);
+    const productIds: string[] | undefined = Array.isArray(body?.productIds)
+      ? body.productIds.filter((productId: unknown): productId is string => typeof productId === 'string' && productId.trim().length > 0)
+      : undefined;
+
+    const data: Record<string, unknown> = {
+      title: title || undefined,
+      slug: body?.slug !== undefined ? await uniqueSlug(cleanString(body.slug) || title || 'blog-post', id) : undefined,
+      categoryId: categoryId || undefined,
+      featuredImage: body?.featuredImage !== undefined ? nullableString(body.featuredImage) : undefined,
+      excerpt: body?.excerpt !== undefined ? nullableString(body.excerpt) : undefined,
+      content: body?.content !== undefined ? cleanString(body.content) : undefined,
+      metaTitle: body?.metaTitle !== undefined ? nullableString(body.metaTitle) || title || undefined : undefined,
+      metaDescription: body?.metaDescription !== undefined ? nullableString(body.metaDescription) : undefined,
+      isPublished: typeof body?.isPublished === 'boolean' ? body.isPublished : undefined,
+      products: productIds ? { set: productIds.map((productId) => ({ id: productId })) } : undefined,
+    };
+
+    const post = await prisma.blogPost.update({
+      where: { id },
+      data,
+      include: { products: { select: { id: true } } },
+    });
+    revalidateBlogPages(post.slug);
+    return NextResponse.json({ success: true, data: post });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to update blog post';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  if (!isAdminRequest(req)) {
+    return unauthorizedAdminResponse();
+  }
+
+  try {
+    const id = req.nextUrl.searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'Blog post id is required.' }, { status: 400 });
+    const post = await prisma.blogPost.delete({ where: { id }, select: { slug: true } });
+    revalidateBlogPages(post.slug);
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to delete blog post';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
