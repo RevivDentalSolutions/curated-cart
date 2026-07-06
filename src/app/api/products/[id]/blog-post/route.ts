@@ -44,7 +44,7 @@ function buildBlogPostContent(product: Awaited<ReturnType<typeof loadProduct>>, 
     '',
     `Why we love it: ${product.viralTrendNotes || `${product.name} is a curated ${product.category.name} find selected for The Curated Cart.`}`,
     '',
-    product.price ? `Price note: usually around $${product.price}. Check the product page for current pricing and availability.` : 'Price note: check the product page for current pricing and availability.',
+    'Price and availability: check the retailer page for current details before purchasing.',
     '',
     `Shop the find: ${product.amazonLink || product.affiliateLink || product.affiliatePlaceholderUrl || 'Add your affiliate link before promoting.'}`,
   ].join('\n');
