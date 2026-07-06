@@ -42,17 +42,17 @@ FROM "_prisma_migrations"
 ORDER BY finished_at DESC NULLS LAST;
 ```
 
-## 3) Prevent Vercel build failure (P3005) while preserving data
+## 3) Vercel build migrations
 
-Build no longer runs `prisma migrate deploy` automatically.
+The Vercel build now runs pending Prisma migrations before `next build` whenever `DATABASE_URL` is configured.
 
 Current build command:
 
 ```json
-"build": "npx prisma generate && next build"
+"build": "prisma generate && node scripts/run-prisma-migrations-if-configured.mjs && next build"
 ```
 
-This avoids Prisma `P3005` during Vercel builds on a pre-existing (non-empty) production database.
+This uses `prisma migrate deploy` only. Do **not** use `prisma migrate dev` in production. If a pre-existing production database has broken migration history, baseline it first with `migrate resolve` as described below, then redeploy.
 
 ## 4) Manual SQL fallback (idempotent)
 
@@ -73,7 +73,7 @@ If `_prisma_migrations` is out of sync with a live Neon database, baseline it wi
 DATABASE_URL="...production..." npx prisma migrate resolve --applied 20260522000000_add_product_image_column
 ```
 
-After baselining, future migrations can be applied in controlled/manual runs (outside Vercel build):
+After baselining, future migrations can be applied by the Vercel build or in controlled/manual runs:
 
 ```bash
 DATABASE_URL="...production..." npx prisma migrate deploy
