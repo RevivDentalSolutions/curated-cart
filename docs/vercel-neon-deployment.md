@@ -14,6 +14,7 @@ Set these in the Vercel project environment settings before redeploying:
 
 - `DATABASE_URL`: Neon pooled PostgreSQL connection string used by the app and Prisma during deployment.
 - `DIRECT_URL`: Neon direct PostgreSQL connection string. The Vercel build script uses this for `prisma migrate deploy` when present, while the app can continue using the pooled `DATABASE_URL`.
+- `PRISMA_PRODUCTION_BASELINED`: Set to `true` only after following `docs/neon-production-baseline.md` for an existing non-empty Neon production database.
 - `NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG`: Your active Amazon Associates tracking ID once approved.
 
-After adding or correcting environment variables, redeploy from Vercel so `npm run vercel-build` applies any pending files in `prisma/migrations/` before the Next.js build.
+After baselining the existing production database and adding/correcting environment variables, redeploy from Vercel so `npm run vercel-build` applies only pending files in `prisma/migrations/` before the Next.js build.

@@ -52,7 +52,7 @@ Current Vercel build command:
 "buildCommand": "npm run vercel-build"
 ```
 
-`npm run vercel-build` runs `prisma generate`, then `prisma migrate deploy`, then `next build`. This uses `prisma migrate deploy` only. Do **not** use `prisma migrate dev` in production. If a pre-existing production database has broken migration history, baseline it first with `migrate resolve` as described below, then redeploy.
+`npm run vercel-build` runs `prisma generate`, checks `PRISMA_PRODUCTION_BASELINED=true`, then runs `prisma migrate deploy`, then `next build`. This uses `prisma migrate deploy` only. Do **not** use `prisma migrate dev` in production. If a pre-existing production database has broken migration history, baseline it first with `migrate resolve` as described in `docs/neon-production-baseline.md`, then redeploy.
 
 ## 4) Manual SQL fallback (idempotent)
 

@@ -19,6 +19,11 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+if (process.env.PRISMA_PRODUCTION_BASELINED !== 'true') {
+  console.error('Prisma production baseline is not confirmed. Baseline the existing Neon database first, then set PRISMA_PRODUCTION_BASELINED=true in Vercel. See docs/neon-production-baseline.md.');
+  process.exit(1);
+}
+
 const migrateEnv = {
   ...process.env,
   DATABASE_URL: process.env.DIRECT_URL || process.env.DATABASE_URL,
