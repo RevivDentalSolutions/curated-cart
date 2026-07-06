@@ -6,17 +6,35 @@ import AffiliateDisclosureNotice from '@/components/AffiliateDisclosureNotice';
 import { prisma } from '@/lib/prisma';
 import { buildCategoryCards, getCategoryImage } from '@/lib/categories';
 import { withAmazonAssociatesTag } from '@/lib/affiliate';
+import { fallbackCategories, fallbackFeaturedFinds, fallbackLatestPosts } from '@/lib/homepage-fallback';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   await connection();
 
-  const [categorySources, featuredFinds, latestPosts] = await Promise.all([
-    prisma.category.findMany({ include: { products: { where: { published: true }, select: { id: true } } }, take: 8 }),
-    prisma.product.findMany({ where: { published: true }, include: { category: true }, take: 6, orderBy: { dateAdded: 'desc' } }),
-    prisma.blogPost.findMany({ where: { isPublished: true }, include: { category: true }, take: 3, orderBy: { createdAt: 'desc' } }),
-  ]);
+  const hasDatabase = Boolean(process.env.DATABASE_URL);
+  const [categorySources, featuredFinds, latestPosts] = hasDatabase
+    ? await Promise.all([
+        prisma.category.findMany({ include: { products: { where: { published: true }, select: { id: true } } }, take: 8 }),
+        prisma.product.findMany({
+          where: { published: true },
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            affiliateLink: true,
+            amazonLink: true,
+            viralTrendNotes: true,
+            contentIdea: true,
+            category: { select: { name: true } },
+          },
+          take: 6,
+          orderBy: { dateAdded: 'desc' },
+        }),
+        prisma.blogPost.findMany({ where: { isPublished: true }, include: { category: true }, take: 3, orderBy: { createdAt: 'desc' } }),
+      ])
+    : [fallbackCategories, fallbackFeaturedFinds, fallbackLatestPosts];
 
   const categories = buildCategoryCards(categorySources);
 
@@ -54,7 +72,7 @@ export default async function Home() {
               <div className="p-6">
                 <span className="text-[10px] uppercase tracking-widest text-brand-gold font-bold">{item.category.name}</span>
                 <h3 className="mt-2 font-serif text-xl text-brand-black">{item.name}</h3>
-                <p className="mt-3 min-h-12 text-sm leading-6 text-brand-black/65">{item.description || 'A hand-picked find selected for The Curated Cart readers.'}</p>
+                <p className="mt-3 min-h-12 text-sm leading-6 text-brand-black/65">{'description' in item ? item.description : item.viralTrendNotes || item.contentIdea || 'A hand-picked find selected for The Curated Cart readers.'}</p>
                 <a href={withAmazonAssociatesTag(item.affiliateLink || item.amazonLink)} target="_blank" rel="sponsored noopener noreferrer" className="btn-primary mt-5 block py-3 text-center text-[10px]">Shop the Find</a>
               </div>
             </article>
