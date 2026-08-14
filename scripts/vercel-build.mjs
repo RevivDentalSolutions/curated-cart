@@ -19,6 +19,15 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+// Preview deployments must never run production migrations. The production
+// baseline confirmation is intentionally scoped to the production deployment;
+// requiring it in Preview prevents safe recovery branches from building.
+if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') {
+  console.log(`Skipping Prisma migrations for ${process.env.VERCEL_ENV} deployment.`);
+  run('npx', ['next', 'build']);
+  process.exit(0);
+}
+
 if (process.env.PRISMA_SKIP_MIGRATE_DEPLOY === 'true') {
   console.warn('Skipping prisma migrate deploy because PRISMA_SKIP_MIGRATE_DEPLOY=true. Use only as a temporary cloud-only bypass after confirming the production schema is already repaired.');
   run('npx', ['next', 'build']);
