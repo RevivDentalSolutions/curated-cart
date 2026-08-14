@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
-import { ProductLeadStatus } from '@prisma/client';
+type ProductLeadStatus = 'New' | 'Approved' | 'Rejected';
 import { prisma } from '@/lib/prisma';
 
 export async function PATCH(

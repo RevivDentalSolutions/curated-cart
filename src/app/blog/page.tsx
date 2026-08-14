@@ -1,17 +1,19 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
+import { fallbackCategories, fallbackLatestPosts } from '@/lib/homepage-fallback';
+import { publicBlogPostWhere } from '@/lib/blog-visibility';
 
 export default async function BlogPage() {
   await connection();
-  const categories = await prisma.category.findMany();
-  const posts = await prisma.blogPost.findMany({
-    where: { isPublished: true },
+  const hasDatabase = Boolean(process.env.DATABASE_URL);
+  const categories = hasDatabase ? await prisma.category.findMany() : fallbackCategories;
+  const posts = hasDatabase ? await prisma.blogPost.findMany({
+    where: publicBlogPostWhere,
     include: { category: true },
     orderBy: { createdAt: 'desc' }
-  });
+  }) : fallbackLatestPosts;
 
   const getCategoryImage = (name: string) => {
     const images: {[key: string]: string} = {
@@ -56,9 +58,7 @@ export default async function BlogPage() {
                 <img 
                   src={post.featuredImage || getCategoryImage(post.category.name)} 
                   alt={post.title} 
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500" 
+                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" 
                 />
               </div>
               <div className="flex items-center gap-4 mb-3">

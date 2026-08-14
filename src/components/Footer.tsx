@@ -21,6 +21,12 @@ export default function Footer() {
             </ul>
           </div>
           <div>
+            <h4 className="font-sans text-xs font-bold uppercase tracking-[0.2em] mb-6 text-brand-gold">Site Info</h4>
+            <ul className="text-sm space-y-3 text-brand-beige opacity-80 mb-6">
+              <li><a href="/privacy-policy" className="hover:text-brand-cream transition-colors">Privacy Policy</a></li>
+              <li><a href="/affiliate-disclosure" className="hover:text-brand-cream transition-colors">Affiliate Disclosure</a></li>
+              <li><a href="/contact" className="hover:text-brand-cream transition-colors">Contact</a></li>
+            </ul>
             <h4 className="font-sans text-xs font-bold uppercase tracking-[0.2em] mb-6 text-brand-gold">Newsletter</h4>
             <p className="text-sm mb-4 text-brand-beige opacity-80">Get my weekly Amazon finds delivered to your inbox.</p>
             <form onSubmit={(e) => { e.preventDefault(); alert('Thank you for joining! The first Cart Drop is on its way.'); }} className="flex flex-col space-y-2">
