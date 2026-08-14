@@ -3,13 +3,14 @@ import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
 import { fallbackCategories, fallbackLatestPosts } from '@/lib/homepage-fallback';
+import { publicBlogPostWhere } from '@/lib/blog-visibility';
 
 export default async function BlogPage() {
   await connection();
   const hasDatabase = Boolean(process.env.DATABASE_URL);
   const categories = hasDatabase ? await prisma.category.findMany() : fallbackCategories;
   const posts = hasDatabase ? await prisma.blogPost.findMany({
-    where: { isPublished: true },
+    where: publicBlogPostWhere,
     include: { category: true },
     orderBy: { createdAt: 'desc' }
   }) : fallbackLatestPosts;

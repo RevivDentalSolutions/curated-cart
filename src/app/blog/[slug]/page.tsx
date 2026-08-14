@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { getCategoryImage } from '@/lib/categories';
 import { withAmazonAssociatesTag } from '@/lib/affiliate';
 import { fallbackLatestPosts } from '@/lib/homepage-fallback';
+import { isPublicBlogPost } from '@/lib/blog-visibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     include: { category: true, products: { include: { category: true } } },
   }) : fallbackLatestPosts.find((item) => item.slug === slug);
 
-  if (!post || !post.isPublished) notFound();
+  if (!post || !isPublicBlogPost(post)) notFound();
 
   const paragraphs = (post.content || post.excerpt || '').split('\n').filter(Boolean);
 

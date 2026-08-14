@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { buildCategoryCards, getCategoryImage } from '@/lib/categories';
 import { withAmazonAssociatesTag } from '@/lib/affiliate';
 import { fallbackCategories, fallbackFeaturedFinds, fallbackLatestPosts } from '@/lib/homepage-fallback';
+import { publicBlogPostWhere } from '@/lib/blog-visibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ export default async function Home() {
           take: 6,
           orderBy: { dateAdded: 'desc' },
         }),
-        prisma.blogPost.findMany({ where: { isPublished: true }, include: { category: true }, take: 3, orderBy: { createdAt: 'desc' } }),
+        prisma.blogPost.findMany({ where: publicBlogPostWhere, include: { category: true }, take: 3, orderBy: { createdAt: 'desc' } }),
       ])
     : [fallbackCategories, fallbackFeaturedFinds, fallbackLatestPosts];
 

@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { publicBlogPostWhere } from '@/lib/blog-visibility';
 
 const baseUrl = 'https://www.shopthecuratedcart.com';
 
@@ -19,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const [posts, categories] = await Promise.all([
       prisma.blogPost.findMany({
-        where: { isPublished: true },
+        where: publicBlogPostWhere,
         select: { slug: true, updatedAt: true },
       }),
       prisma.category.findMany({
