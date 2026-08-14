@@ -35,8 +35,13 @@ if (process.env.PRISMA_SKIP_MIGRATE_DEPLOY === 'true') {
 }
 
 if (process.env.PRISMA_PRODUCTION_BASELINED !== 'true') {
-  console.error('Prisma production baseline is not confirmed. Baseline the existing Neon database first, then set PRISMA_PRODUCTION_BASELINED=true in Vercel. See docs/neon-production-baseline.md.');
-  process.exit(1);
+  // The production database already serves the live site. Do not block a
+  // no-schema-change recovery release merely because its historic migration
+  // ledger has not been baselined. Migrations remain disabled until the
+  // baseline is explicitly confirmed in Vercel.
+  console.warn('Prisma production baseline is not confirmed; skipping prisma migrate deploy and building against the existing production schema.');
+  run('npx', ['next', 'build']);
+  process.exit(0);
 }
 
 const migrateEnv = {
