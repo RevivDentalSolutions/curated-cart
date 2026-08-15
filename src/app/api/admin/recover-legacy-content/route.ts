@@ -94,49 +94,22 @@ async function inventory() {
   }
 }
 
-async function findOrCreateProduct(product: LegacyProduct, categoryId: string) {
+async function findExistingProductId(product: LegacyProduct, categoryId: string) {
   const asin = asString(product.amazonAsin);
   const affiliateLink = asString(product.affiliateLink);
   const amazonLink = asString(product.amazonLink);
-  const linkMatches: Array<Record<string, string>> = [
-    ...(asin ? [{ amazonAsin: asin }] : []),
-    ...(affiliateLink ? [{ affiliateLink }] : []),
-    ...(amazonLink ? [{ amazonLink }] : []),
-  ];
-
-  // Product has no compound unique key; the final name/category lookup is an
-  // intentional conservative fallback and never overwrites an existing record.
-  const existing = linkMatches.length
-    ? await prisma.product.findFirst({ where: { OR: linkMatches } }).catch(() => null)
-    : null;
-  const byNameAndCategory = existing || await prisma.product.findFirst({ where: { name: product.name, categoryId } });
-  if (byNameAndCategory) return { id: byNameAndCategory.id, created: false };
-
-  const created = await prisma.product.create({
-    data: {
-      name: product.name,
-      categoryId,
-      description: asString(product.description),
-      amazonLink,
-      affiliateLink,
-      affiliatePlaceholderUrl: asString(product.affiliatePlaceholderUrl),
-      imageUrl: asString(product.imageUrl),
-      amazonAsin: asin,
-      rating: typeof product.rating === 'number' ? product.rating : null,
-      reviewCount: typeof product.reviewCount === 'number' ? product.reviewCount : null,
-      price: typeof product.price === 'number' ? product.price : null,
-      source: asString(product.source),
-      viralTrendNotes: asString(product.viralTrendNotes),
-      contentIdea: asString(product.contentIdea),
-      blogPostStatus: asString(product.blogPostStatus) || 'Needs Content',
-      published: asBoolean(product.published, true),
-      pinStatus: asString(product.pinStatus) || 'Pending',
-      tiktokStatus: asString(product.tiktokStatus) || 'Pending',
-      commissionPotential: asString(product.commissionPotential),
-      dateAdded: asDate(product.dateAdded),
-    },
-  });
-  return { id: created.id, created: true };
+  const clauses = ['("name" = $1 AND "categoryId" = $2)'];
+  const values: string[] = [product.name, categoryId];
+  if (asin) { values.push(asin); clauses.push(`"amazonAsin" = $${values.length}`); }
+  if (affiliateLink) { values.push(affiliateLink); clauses.push(`"affiliateLink" = $${values.length}`); }
+  if (amazonLink) { values.push(amazonLink); clauses.push(`"amazonLink" = $${values.length}`); }
+  // Use raw SQL here because the current live database predates Product.description.
+  // This query deliberately reads only id and never updates product data or links.
+  const matches = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+    `SELECT "id" FROM "Product" WHERE ${clauses.join(' OR ')} LIMIT 1`,
+    ...values,
+  );
+  return matches[0]?.id || null;
 }
 
 async function recover() {
@@ -152,6 +125,7 @@ async function recover() {
     const legacyToTargetProductId = new Map<string, string>();
     let productsCreated = 0;
     let productsReused = 0;
+    let productsUnavailable = 0;
     for (const product of source.productRows) {
       const categoryName = product.category_name || 'Amazon Favorites';
       let categoryId = categoryIds.get(categoryName);
@@ -160,9 +134,13 @@ async function recover() {
         categoryId = category.id;
         categoryIds.set(categoryName, categoryId);
       }
-      const result = await findOrCreateProduct(product, categoryId);
-      legacyToTargetProductId.set(product.id, result.id);
-      if (result.created) productsCreated += 1; else productsReused += 1;
+      const targetProductId = await findExistingProductId(product, categoryId);
+      if (targetProductId) {
+        legacyToTargetProductId.set(product.id, targetProductId);
+        productsReused += 1;
+      } else {
+        productsUnavailable += 1;
+      }
     }
 
     let postsCreated = 0;
@@ -204,7 +182,7 @@ async function recover() {
       productLinksRestored += targetProductIds.length;
     }
 
-    return { categoriesAvailable: categoryIds.size, productsCreated, productsReused, postsCreated, postsReused, productLinksRestored, destructiveCommandsUsed: false };
+    return { categoriesAvailable: categoryIds.size, productsCreated, productsReused, productsUnavailable, postsCreated, postsReused, productLinksRestored, destructiveCommandsUsed: false };
   } finally {
     await legacy.$disconnect();
   }
