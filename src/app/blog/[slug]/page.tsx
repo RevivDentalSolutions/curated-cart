@@ -12,6 +12,8 @@ import { isPublicBlogPost } from '@/lib/blog-visibility';
 
 export const dynamic = 'force-dynamic';
 
+const siteUrl = 'https://www.shopthecuratedcart.com';
+
 type GuideProduct = {
   id: string;
   name: string;
@@ -25,7 +27,31 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = process.env.DATABASE_URL ? await prisma.blogPost.findUnique({ where: { slug } }) : fallbackLatestPosts.find((item) => item.slug === slug);
   if (!post) return {};
-  return { title: post.metaTitle || post.title, description: post.metaDescription || post.excerpt || undefined };
+
+  const title = post.metaTitle || post.title;
+  const description = post.metaDescription || post.excerpt || undefined;
+  const url = `${siteUrl}/blog/${post.slug}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/blog/${post.slug}` },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: 'article',
+      publishedTime: post.createdAt.toISOString(),
+      modifiedTime: post.updatedAt.toISOString(),
+      images: post.featuredImage ? [{ url: post.featuredImage, alt: post.title }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: post.featuredImage ? [post.featuredImage] : undefined,
+    },
+  };
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -52,9 +78,26 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     : [];
 
   const paragraphs = (post.content || post.excerpt || '').split('\n').filter(Boolean);
+  const articleUrl = `${siteUrl}/blog/${post.slug}`;
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.metaDescription || post.excerpt || undefined,
+    image: post.featuredImage || undefined,
+    datePublished: post.createdAt.toISOString(),
+    dateModified: post.updatedAt.toISOString(),
+    mainEntityOfPage: articleUrl,
+    author: { '@type': 'Organization', name: 'The Curated Cart' },
+    publisher: { '@type': 'Organization', name: 'The Curated Cart' },
+  };
 
   return (
     <article className="container mx-auto max-w-4xl px-4 py-16 text-brand-black">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
       <Link href="/blog" className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-gold">← Back to Blog</Link>
       <span className="mt-8 block text-[10px] font-bold uppercase tracking-[0.3em] text-brand-gold">{post.category.name}</span>
       <h1 className="mt-4 text-5xl font-serif tracking-tighter">{post.title}</h1>
