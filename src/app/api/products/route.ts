@@ -20,8 +20,34 @@ export async function GET(req: NextRequest) {
   if (!isAdminRequest(req)) return unauthorizedAdminResponse();
 
   try {
+    // The recovered production catalog predates Product.description. Keep the
+    // admin library functional by selecting only columns that are present.
     const products = await prisma.product.findMany({
-      include: { category: true, contentBundle: true, blogPosts: { orderBy: { createdAt: 'desc' }, take: 1, include: { products: { select: { id: true, name: true } } } } },
+      select: {
+        id: true,
+        name: true,
+        categoryId: true,
+        imageUrl: true,
+        amazonLink: true,
+        affiliateLink: true,
+        affiliatePlaceholderUrl: true,
+        amazonAsin: true,
+        source: true,
+        viralTrendNotes: true,
+        contentIdea: true,
+        blogPostStatus: true,
+        pinStatus: true,
+        tiktokStatus: true,
+        published: true,
+        dateAdded: true,
+        category: true,
+        contentBundle: true,
+        blogPosts: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: { products: { select: { id: true, name: true } } },
+        },
+      },
       orderBy: { dateAdded: 'desc' },
     });
     return NextResponse.json({ success: true, data: products });
