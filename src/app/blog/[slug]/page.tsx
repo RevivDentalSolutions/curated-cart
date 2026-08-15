@@ -15,6 +15,7 @@ import { isPublicBlogPost } from '@/lib/blog-visibility';
 export const dynamic = 'force-dynamic';
 
 const siteUrl = 'https://www.shopthecuratedcart.com';
+const kitchenEditorialHero = '/images/neutral-kitchen-hero.jpg';
 
 type GuideProduct = {
   id: string;
@@ -103,7 +104,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     publisher: { '@type': 'Organization', name: 'The Curated Cart' },
   };
   const featuredProduct = products.find((product) => product.imageUrl === post.featuredImage) || products[0];
-  const heroImage = post.featuredImage || featuredProduct?.imageUrl || getCategoryImage(post.category.name);
+  const heroImage = post.slug === 'neutral-luxury-kitchen-finds'
+    ? kitchenEditorialHero
+    : post.featuredImage || featuredProduct?.imageUrl || getCategoryImage(post.category.name);
 
   return (
     <article className="pb-24 text-brand-black">
