@@ -52,10 +52,10 @@ async function readLegacyData(legacy: PrismaClient) {
   ]);
 
   const productRows = products
-    .map(({ data, category_name }) => ({ ...data, category_name }))
+    .map(({ data, category_name }): LegacyRow & { category_name: string | null } => ({ ...(data as LegacyRow), category_name }))
     .filter((row): row is LegacyProduct => typeof row.id === 'string' && typeof row.name === 'string');
   const blogRows = blogPosts
-    .map(({ data, category_name }) => ({ ...data, category_name }))
+    .map(({ data, category_name }): LegacyRow & { category_name: string | null } => ({ ...(data as LegacyRow), category_name }))
     .filter((row): row is LegacyBlogPost => typeof row.id === 'string' && typeof row.slug === 'string' && typeof row.title === 'string');
 
   const productIds = new Set(productRows.map((product) => product.id));
