@@ -19,7 +19,16 @@ export default async function Home() {
     ? await Promise.all([
         prisma.category.findMany({ include: { products: { where: { published: true }, select: { id: true } } }, take: 8 }),
         prisma.product.findMany({
-          where: { published: true },
+          // Do not surface unfinished scout records as public shopping cards.
+          // Their library entries remain available in the dashboard for review.
+          where: {
+            published: true,
+            AND: [
+              { OR: [{ affiliateLink: { not: null } }, { amazonLink: { not: null } }] },
+              { NOT: { affiliateLink: '#' } },
+              { NOT: { amazonLink: '#' } },
+            ],
+          },
           select: {
             id: true,
             name: true,
