@@ -10,10 +10,31 @@ import { fallbackCategories, fallbackFeaturedFinds } from '@/lib/homepage-fallba
 
 export const dynamic = 'force-dynamic';
 
+const siteUrl = 'https://www.shopthecuratedcart.com';
+
+function categoryDescription(name: string) {
+  return `Shop curated ${name.toLowerCase()} finds from The Curated Cart. Practical, pretty picks selected for everyday life.`;
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const collection = getCategoryCollection(id);
-  return { title: `${collection?.name || 'Category'} | Curated Amazon Finds` };
+  const name = collection?.name || 'Curated Finds';
+  const canonicalId = collection?.slug || id;
+  const description = categoryDescription(name);
+
+  return {
+    title: `${name} Finds`,
+    description,
+    alternates: { canonical: `/categories/${canonicalId}` },
+    openGraph: {
+      title: `${name} Finds | The Curated Cart`,
+      description,
+      url: `${siteUrl}/categories/${canonicalId}`,
+      type: 'website',
+      images: [{ url: collection?.image || getCategoryImage(name), alt: `${name} curated finds` }],
+    },
+  };
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,9 +52,22 @@ export default async function CategoryPage({ params }: { params: Promise<{ id: s
 
   const displayName = collection?.name || getDisplayCategoryName(category!.name);
   const categoryNames = collection ? categoryNamesForSlug(collection.slug) : [category!.name];
+
+  // Production predates Product.description. Select only fields that exist in
+  // the recovered catalog so category pages stay available while the schema
+  // repair is handled separately.
   const products = hasDatabase ? await prisma.product.findMany({
     where: { published: true, category: { name: { in: categoryNames } } },
     orderBy: { dateAdded: 'desc' },
+    select: {
+      id: true,
+      name: true,
+      imageUrl: true,
+      affiliateLink: true,
+      amazonLink: true,
+      viralTrendNotes: true,
+      contentIdea: true,
+    },
   }) : fallbackFeaturedFinds.filter((product) => product.categoryId === category?.id || categoryNames.includes(product.category.name));
 
   return (
@@ -48,7 +82,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ id: s
         {products.map((item) => (
           <article key={item.id} className="luxury-card overflow-hidden">
             <div className="aspect-[4/5] overflow-hidden bg-brand-cream"><ProductImage src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" /></div>
-            <div className="p-5"><h3 className="font-serif text-lg text-brand-black">{item.name}</h3><p className="mt-3 text-sm leading-6 text-brand-black/65">{item.description || 'Curated affiliate find.'}</p><a href={withAmazonAssociatesTag(item.affiliateLink || item.amazonLink)} target="_blank" rel="sponsored noopener noreferrer" className="btn-primary mt-5 block py-3 text-center text-[10px]">Shop the Find</a></div>
+            <div className="p-5"><h2 className="font-serif text-lg text-brand-black">{item.name}</h2><p className="mt-3 text-sm leading-6 text-brand-black/65">{('viralTrendNotes' in item && item.viralTrendNotes) || ('contentIdea' in item && item.contentIdea) || 'A hand-picked find selected for The Curated Cart readers.'}</p><a href={withAmazonAssociatesTag(item.affiliateLink || item.amazonLink)} target="_blank" rel="sponsored noopener noreferrer" className="btn-primary mt-5 block py-3 text-center text-[10px]">Shop the Find</a></div>
           </article>
         ))}
       </div>
