@@ -191,9 +191,13 @@ export async function PATCH(
       include: { products: { select: { id: true } } },
     });
 
+    // The recovered production catalog predates Product.description. Prisma's
+    // default update return selects every column, so explicitly select only the
+    // status field needed here.
     await prisma.product.update({
       where: { id },
       data: { blogPostStatus: isPublished ? 'Published' : 'Ready to Promote' },
+      select: { id: true, blogPostStatus: true },
     });
 
     revalidateBlogPostPages(blogPost.slug);
