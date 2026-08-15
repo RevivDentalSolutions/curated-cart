@@ -23,10 +23,9 @@ export default async function Home() {
           // Their library entries remain available in the dashboard for review.
           where: {
             published: true,
-            AND: [
-              { OR: [{ affiliateLink: { not: null } }, { amazonLink: { not: null } }] },
-              { NOT: { affiliateLink: '#' } },
-              { NOT: { amazonLink: '#' } },
+            OR: [
+              { affiliateLink: { not: null, notIn: ['#', ''] } },
+              { amazonLink: { not: null, notIn: ['#', ''] } },
             ],
           },
           select: {
