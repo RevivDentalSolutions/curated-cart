@@ -1,9 +1,22 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { connection } from 'next/server';
 import { fallbackCategories, fallbackLatestPosts } from '@/lib/homepage-fallback';
 import { publicBlogPostWhere } from '@/lib/blog-visibility';
+
+export const metadata: Metadata = {
+  title: 'Shopping Guides & Amazon Finds',
+  description: 'Browse practical shopping guides for beauty, hair, home, kitchen, fashion, and everyday life from The Curated Cart.',
+  alternates: { canonical: '/blog' },
+  openGraph: {
+    title: 'Shopping Guides & Amazon Finds | The Curated Cart',
+    description: 'Practical shopping guides for beauty, hair, home, kitchen, fashion, and everyday life.',
+    url: 'https://www.shopthecuratedcart.com/blog',
+    type: 'website',
+  },
+};
 
 export default async function BlogPage() {
   await connection();
