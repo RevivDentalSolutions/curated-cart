@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, description, categoryId, imageUrl, affiliateLink, amazonLink, affiliatePlaceholderUrl, amazonAsin, source, viralTrendNotes, contentIdea, blogPostStatus, pinStatus, tiktokStatus, published } = body;
+    const { name, categoryId, imageUrl, affiliateLink, amazonLink, affiliatePlaceholderUrl, amazonAsin, source, viralTrendNotes, contentIdea, blogPostStatus, pinStatus, tiktokStatus, published } = body;
 
     if (!clean(name) || !clean(categoryId) || !clean(imageUrl) || !clean(affiliateLink || amazonLink)) {
       return NextResponse.json({ error: 'Title, category, image URL, and affiliate URL are required.' }, { status: 400 });
@@ -75,7 +75,8 @@ export async function POST(req: NextRequest) {
     const product = await prisma.product.create({
       data: {
         name: clean(name)!,
-        description: clean(description),
+        // The recovered production table intentionally has no description
+        // column yet. Do not let an optional editor field break creation.
         categoryId: category.id,
         imageUrl: clean(imageUrl),
         affiliateLink: link,
@@ -105,7 +106,7 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, name, description, categoryId, imageUrl, affiliateLink, amazonLink, affiliatePlaceholderUrl, amazonAsin, source, viralTrendNotes, contentIdea, blogPostStatus, pinStatus, tiktokStatus, published } = body;
+    const { id, name, categoryId, imageUrl, affiliateLink, amazonLink, affiliatePlaceholderUrl, amazonAsin, source, viralTrendNotes, contentIdea, blogPostStatus, pinStatus, tiktokStatus, published } = body;
     if (!clean(id)) return NextResponse.json({ error: 'Product id is required.' }, { status: 400 });
 
     const link = affiliateLink !== undefined || amazonLink !== undefined ? clean(affiliateLink) || clean(amazonLink) : undefined;
@@ -113,7 +114,9 @@ export async function PATCH(req: NextRequest) {
       where: { id },
       data: {
         name: name !== undefined ? clean(name) || undefined : undefined,
-        description: description !== undefined ? clean(description) : undefined,
+        // Production is still on the recovered Product schema, which does
+        // not contain Product.description. Omitting it keeps link-only and
+        // all other dashboard saves reliable until a dedicated migration.
         categoryId: categoryId !== undefined ? clean(categoryId) || undefined : undefined,
         imageUrl: imageUrl !== undefined ? clean(imageUrl) : undefined,
         affiliateLink: link,
