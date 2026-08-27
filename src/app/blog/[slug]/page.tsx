@@ -184,7 +184,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-gold">Complete the space</span>
             <h2 className="mt-3 text-4xl font-serif">The Little Luxuries</h2>
           </div>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
             {miniHighlights.map(({ product, commentary }) => (
               <article key={product.id} className="group">
                 <div className="aspect-square overflow-hidden bg-brand-nude">
@@ -215,7 +215,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <h2 className="mt-3 text-4xl font-serif md:text-5xl">Shop the Edit</h2>
             <p className="mt-4 text-sm leading-6 text-brand-black/60">The complete collection from this guide, curated for easy browsing.</p>
           </div>
-          <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-6">
+          <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-5">
             {products.map((product) => (
               <article key={product.id} className="luxury-card overflow-hidden">
                 <div className="aspect-square overflow-hidden bg-brand-cream"><ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-3" loading="lazy" /></div>
