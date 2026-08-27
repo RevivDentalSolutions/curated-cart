@@ -115,7 +115,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const remainingEditorialCopy = body.filter((_, index) => !consumedParagraphs.has(index));
   const articleUrl = `https://www.shopthecuratedcart.com/blog/${post.slug}`;
   const editorialHero = slug === 'neutral-luxury-kitchen-finds-2'
-    ? '/neutral-luxury-kitchen-editorial-hero.png'
+    ? '/neutral-luxury-kitchen-editorial-hero.webp'
     : post.featuredImage || getCategoryImage(post.category.name);
   const articleSchema = {
     '@context': 'https://schema.org',
@@ -149,7 +149,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         {post.excerpt && <p className="mt-6 max-w-2xl text-base leading-7 text-brand-black/65 md:text-lg">{post.excerpt}</p>}
       </header>
       {editorialHero && (
-        <div className="mx-auto mt-10 aspect-[4/5] max-h-[760px] max-w-[1400px] overflow-hidden bg-brand-cream md:aspect-[16/8]">
+        <div className="mx-auto mt-10 aspect-[4/3] max-h-[440px] max-w-5xl overflow-hidden bg-brand-cream md:aspect-[16/7]">
           <ProductImage src={editorialHero} alt={`A curated neutral luxury kitchen featuring cookware, glass storage, utensils, and countertop finds`} className="h-full w-full object-cover" fetchPriority="high" />
         </div>
       )}
@@ -187,7 +187,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <div className="grid gap-8 md:grid-cols-3">
             {miniHighlights.map(({ product, commentary }) => (
               <article key={product.id} className="group">
-                <div className="aspect-[4/5] overflow-hidden bg-brand-nude">
+                <div className="aspect-square overflow-hidden bg-brand-nude">
                   <ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.03]" loading="lazy" />
                 </div>
                 <h3 className="mt-5 text-2xl font-serif leading-tight">{product.name}</h3>
@@ -215,7 +215,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <h2 className="mt-3 text-4xl font-serif md:text-5xl">Shop the Edit</h2>
             <p className="mt-4 text-sm leading-6 text-brand-black/60">The complete collection from this guide, curated for easy browsing.</p>
           </div>
-          <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-7">
+          <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-6">
             {products.map((product) => (
               <article key={product.id} className="luxury-card overflow-hidden">
                 <div className="aspect-square overflow-hidden bg-brand-cream"><ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-3" loading="lazy" /></div>
