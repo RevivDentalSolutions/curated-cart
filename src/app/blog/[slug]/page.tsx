@@ -79,13 +79,21 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     .split(/\n+/)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
-  const hasProductStructuredCopy = paragraphs.some((paragraph) => {
+  const productMatch = (paragraph: string) => {
     const normalizedParagraph = paragraph.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return products.some((product) => {
+    const paragraphTokens = new Set(paragraph.toLowerCase().match(/[a-z0-9]+/g)?.filter((token) => token.length > 2) || []);
+    return products.find((product) => {
       const normalizedName = product.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return normalizedParagraph.length > 7 && (normalizedName.includes(normalizedParagraph) || normalizedParagraph.includes(normalizedName));
+      const nameTokens = new Set(product.name.toLowerCase().match(/[a-z0-9]+/g)?.filter((token) => token.length > 2) || []);
+      const sharedTokens = [...paragraphTokens].filter((token) => nameTokens.has(token)).length;
+      return normalizedParagraph.length > 7 && (
+        normalizedName.includes(normalizedParagraph) ||
+        normalizedParagraph.includes(normalizedName) ||
+        sharedTokens >= Math.min(3, paragraphTokens.size)
+      );
     });
-  });
+  };
+  const hasProductStructuredCopy = paragraphs.some((paragraph) => Boolean(productMatch(paragraph)));
   const introCount = hasProductStructuredCopy ? 1 : 2;
   const intro = paragraphs.slice(0, introCount);
   const body = paragraphs.slice(introCount);
@@ -95,11 +103,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const consumedParagraphs = new Set<number>();
   const highlights = body.flatMap((paragraph, index) => {
     if (consumedParagraphs.has(index)) return [];
-    const normalizedParagraph = paragraph.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const product = products.find((candidate) => {
-      const normalizedName = candidate.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return normalizedParagraph.length > 7 && (normalizedName.includes(normalizedParagraph) || normalizedParagraph.includes(normalizedName));
-    });
+    const product = productMatch(paragraph);
     if (!product) return [];
     consumedParagraphs.add(index);
     const commentary = body[index + 1];
@@ -107,6 +111,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     return [{ product, commentary }];
   });
   const featureHighlights = (highlights.length > 0 ? highlights : products.map((product) => ({ product, commentary: undefined }))).slice(0, 5);
+  const miniHighlights = highlights.slice(5);
   const remainingEditorialCopy = body.filter((_, index) => !consumedParagraphs.has(index));
   const articleUrl = `https://www.shopthecuratedcart.com/blog/${post.slug}`;
   const articleSchema = {
@@ -169,6 +174,27 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </section>
         );
       })}
+
+      {miniHighlights.length > 0 && (
+        <section className="container mx-auto max-w-6xl px-4 py-16 md:py-24">
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-gold">Complete the space</span>
+            <h2 className="mt-3 text-4xl font-serif">The Little Luxuries</h2>
+          </div>
+          <div className="grid gap-8 md:grid-cols-3">
+            {miniHighlights.map(({ product, commentary }) => (
+              <article key={product.id} className="group">
+                <div className="aspect-[4/5] overflow-hidden bg-brand-nude">
+                  <ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                </div>
+                <h3 className="mt-5 text-2xl font-serif leading-tight">{product.name}</h3>
+                {commentary && <p className="mt-3 text-sm leading-6 text-brand-black/65">{commentary}</p>}
+                <a href={withAmazonAssociatesTag(product.affiliateLink || product.amazonLink)} target="_blank" rel="sponsored noopener noreferrer" className="mt-4 inline-block border-b border-brand-gold pb-1 text-[10px] font-bold uppercase tracking-[0.16em]">Shop this find →</a>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {remainingEditorialCopy.length > 0 && (
         <section className="container mx-auto max-w-3xl px-5 py-14 md:py-20">
