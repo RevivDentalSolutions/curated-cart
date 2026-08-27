@@ -114,6 +114,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const miniHighlights = highlights.slice(5);
   const remainingEditorialCopy = body.filter((_, index) => !consumedParagraphs.has(index));
   const articleUrl = `https://www.shopthecuratedcart.com/blog/${post.slug}`;
+  const editorialHero = slug === 'neutral-luxury-kitchen-finds-2'
+    ? '/neutral-luxury-kitchen-editorial-hero.png'
+    : post.featuredImage || getCategoryImage(post.category.name);
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -145,9 +148,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <h1 className="mt-4 max-w-4xl text-4xl font-serif leading-[1.03] tracking-tighter md:text-7xl">{post.title}</h1>
         {post.excerpt && <p className="mt-6 max-w-2xl text-base leading-7 text-brand-black/65 md:text-lg">{post.excerpt}</p>}
       </header>
-      {(post.featuredImage || post.category?.name) && (
+      {editorialHero && (
         <div className="mx-auto mt-10 aspect-[4/5] max-h-[760px] max-w-[1400px] overflow-hidden bg-brand-cream md:aspect-[16/8]">
-          <ProductImage src={post.featuredImage || getCategoryImage(post.category.name)} alt={post.title} className="h-full w-full object-cover" />
+          <ProductImage src={editorialHero} alt={`A curated neutral luxury kitchen featuring cookware, glass storage, utensils, and countertop finds`} className="h-full w-full object-cover" fetchPriority="high" />
         </div>
       )}
       <div className="container mx-auto max-w-3xl px-5 py-12 md:py-16">
@@ -162,7 +165,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         return (
           <section key={product.id} className={`editorial-feature ${reverse ? 'editorial-feature-reverse' : ''}`}>
             <div className="editorial-feature-image">
-              <ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
+              <ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-8 md:p-14" loading="lazy" />
             </div>
             <div className="editorial-feature-copy">
               <span>{String(index + 1).padStart(2, '0')} / The Curated Edit</span>
@@ -185,7 +188,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {miniHighlights.map(({ product, commentary }) => (
               <article key={product.id} className="group">
                 <div className="aspect-[4/5] overflow-hidden bg-brand-nude">
-                  <ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                  <ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.03]" loading="lazy" />
                 </div>
                 <h3 className="mt-5 text-2xl font-serif leading-tight">{product.name}</h3>
                 {commentary && <p className="mt-3 text-sm leading-6 text-brand-black/65">{commentary}</p>}
@@ -215,7 +218,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-7">
             {products.map((product) => (
               <article key={product.id} className="luxury-card overflow-hidden">
-                <div className="aspect-square overflow-hidden bg-brand-cream"><ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" /></div>
+                <div className="aspect-square overflow-hidden bg-brand-cream"><ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-3" loading="lazy" /></div>
                 <div className="p-4 md:p-5"><h3 className="font-serif text-base md:text-lg">{product.name}</h3><p className="mt-2 hidden text-sm text-brand-black/60 sm:block">{product.categoryName || 'Curated find'}</p><a href={withAmazonAssociatesTag(product.affiliateLink || product.amazonLink)} target="_blank" rel="sponsored noopener noreferrer" className="btn-primary mt-4 block px-2 py-3 text-center text-[9px] md:text-[10px]">Shop the Find</a></div>
               </article>
             ))}
