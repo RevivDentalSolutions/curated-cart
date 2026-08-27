@@ -79,12 +79,35 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     .split(/\n+/)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
-  const intro = paragraphs.slice(0, 2);
-  const body = paragraphs.slice(2);
+  const hasProductStructuredCopy = paragraphs.some((paragraph) => {
+    const normalizedParagraph = paragraph.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return products.some((product) => {
+      const normalizedName = product.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return normalizedParagraph.length > 7 && (normalizedName.includes(normalizedParagraph) || normalizedParagraph.includes(normalizedName));
+    });
+  });
+  const introCount = hasProductStructuredCopy ? 1 : 2;
+  const intro = paragraphs.slice(0, introCount);
+  const body = paragraphs.slice(introCount);
   const sectionNames = slug === 'neutral-luxury-kitchen-finds-2'
     ? ['The Foundation', 'The Countertop Edit', 'Everyday Luxuries', 'Cookware Worth Displaying', 'The Finishing Touches']
     : ['Set the Mood', 'The Editor’s Picks', 'Everyday Upgrades', 'Worth a Closer Look', 'The Finishing Touches'];
-  const featureProducts = products.slice(0, Math.min(products.length, 5));
+  const consumedParagraphs = new Set<number>();
+  const highlights = body.flatMap((paragraph, index) => {
+    if (consumedParagraphs.has(index)) return [];
+    const normalizedParagraph = paragraph.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const product = products.find((candidate) => {
+      const normalizedName = candidate.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return normalizedParagraph.length > 7 && (normalizedName.includes(normalizedParagraph) || normalizedParagraph.includes(normalizedName));
+    });
+    if (!product) return [];
+    consumedParagraphs.add(index);
+    const commentary = body[index + 1];
+    if (commentary) consumedParagraphs.add(index + 1);
+    return [{ product, commentary }];
+  });
+  const featureHighlights = (highlights.length > 0 ? highlights : products.map((product) => ({ product, commentary: undefined }))).slice(0, 5);
+  const remainingEditorialCopy = body.filter((_, index) => !consumedParagraphs.has(index));
   const articleUrl = `https://www.shopthecuratedcart.com/blog/${post.slug}`;
   const articleSchema = {
     '@context': 'https://schema.org',
@@ -129,8 +152,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </div>
       </div>
 
-      {featureProducts.map((product, index) => {
-        const commentary = body[index] || body[index + featureProducts.length];
+      {featureHighlights.map(({ product, commentary }, index) => {
         const reverse = index % 2 === 1;
         return (
           <section key={product.id} className={`editorial-feature ${reverse ? 'editorial-feature-reverse' : ''}`}>
@@ -148,10 +170,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         );
       })}
 
-      {body.length > featureProducts.length && (
+      {remainingEditorialCopy.length > 0 && (
         <section className="container mx-auto max-w-3xl px-5 py-14 md:py-20">
           <div className="editorial-body">
-            {body.slice(featureProducts.length).map((paragraph, index) => <p key={`${paragraph}-${index}`}>{paragraph}</p>)}
+            {remainingEditorialCopy.map((paragraph, index) => <p key={`${paragraph}-${index}`}>{paragraph}</p>)}
           </div>
         </section>
       )}
