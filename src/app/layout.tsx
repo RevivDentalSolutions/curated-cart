@@ -37,6 +37,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col font-sans antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'The Curated Cart',
+              url: 'https://www.shopthecuratedcart.com',
+              description: 'Pretty finds. Practical buys.',
+              publisher: { '@type': 'Organization', name: 'The Curated Cart', url: 'https://www.shopthecuratedcart.com' },
+            }),
+          }}
+        />
         <Header />
         <main className="flex-grow">
           {children}
