@@ -124,6 +124,17 @@ export default async function BlogPostPage({
     ? kitchenEditorialHero
     : post.featuredImage || featuredProduct?.imageUrl || getCategoryImage(post.category.name);
 
+  const storyParagraphs = paragraphs.length > 0 ? paragraphs : [post.excerpt || post.metaDescription || ''];
+  const heroProducts = products.slice(0, 3);
+
+  function insertAfterParagraph(productIndex: number) {
+    if (storyParagraphs.length <= 1) return 0;
+    return Math.min(
+      storyParagraphs.length - 1,
+      Math.floor(((productIndex + 1) * storyParagraphs.length) / (products.length + 1))
+    );
+  }
+
   return (
     <article className="pb-24 text-brand-black">
       {isDraftPreview && !isPublicBlogPost(post) && (
@@ -139,74 +150,73 @@ export default async function BlogPostPage({
         readingTime={readingTime([post.title, post.excerpt, post.content].filter(Boolean).join(' '))}
       />
 
-      <div className="container mx-auto max-w-5xl px-4 pt-10 md:pt-14">
-        <div className="mx-auto max-w-4xl overflow-hidden bg-brand-cream shadow-sm">
-          <div className="aspect-[16/8] overflow-hidden">
-            <ProductImage src={heroImage} alt={post.title} className="h-full w-full object-cover" />
+      <div className="container mx-auto max-w-6xl px-4 pt-10 md:pt-14">
+        {heroProducts.length > 1 ? (
+          <div className="mx-auto grid max-w-5xl gap-3 overflow-hidden bg-brand-cream p-3 shadow-sm md:grid-cols-[1.35fr_0.65fr]">
+            <div className="flex min-h-[320px] items-center justify-center bg-white p-6 md:min-h-[520px]">
+              <ProductImage src={heroProducts[0].imageUrl} alt={heroProducts[0].name} className="h-full max-h-[480px] w-full object-contain" />
+            </div>
+            <div className="grid gap-3">
+              {heroProducts.slice(1).map((product) => (
+                <div key={product.id} className="flex min-h-[190px] items-center justify-center bg-white p-5 md:min-h-0">
+                  <ProductImage src={product.imageUrl} alt={product.name} className="h-full max-h-[245px] w-full object-contain" />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mx-auto flex min-h-[320px] max-w-4xl items-center justify-center overflow-hidden bg-brand-cream p-8 shadow-sm md:min-h-[480px]">
+            <ProductImage src={heroImage} alt={post.title} className="h-full max-h-[460px] w-full object-contain" />
+          </div>
+        )}
 
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-4xl">
           {(post.excerpt || post.metaDescription) && (
-            <p className="mt-12 border-y border-brand-blush py-7 text-xl font-light italic leading-9 text-brand-black/75 md:text-2xl md:leading-10">
+            <p className="mx-auto mt-12 max-w-3xl border-y border-brand-blush py-7 text-xl font-light italic leading-9 text-brand-black/75 md:text-2xl md:leading-10">
               {post.excerpt || post.metaDescription}
             </p>
           )}
 
-          <div className="mt-10 space-y-7 text-[1.05rem] leading-8 text-brand-black/75 md:text-lg md:leading-9">
-            {paragraphs.map((paragraph, index) => (
-              <p key={`${index}-${paragraph.slice(0, 30)}`} className={index > 0 && /^\d+\./.test(paragraph) ? 'font-medium text-brand-black' : undefined}>
-                {paragraph}
-              </p>
+          {products.length > 0 && <AffiliateDisclosureNotice className="mx-auto mt-8 max-w-3xl" />}
+
+          <div className="mt-10">
+            {storyParagraphs.map((paragraph, paragraphIndex) => (
+              <div key={`${paragraphIndex}-${paragraph.slice(0, 30)}`}>
+                {paragraph && (
+                  <p className={`mx-auto max-w-3xl text-[1.05rem] leading-8 text-brand-black/75 md:text-lg md:leading-9 ${paragraphIndex > 0 ? 'mt-7' : ''}`}>
+                    {paragraph}
+                  </p>
+                )}
+
+                {products
+                  .map((product, productIndex) => ({ product, productIndex }))
+                  .filter(({ productIndex }) => insertAfterParagraph(productIndex) === paragraphIndex)
+                  .map(({ product, productIndex }) => (
+                    <article
+                      key={product.id}
+                      className={`my-12 grid overflow-hidden border border-brand-blush bg-white shadow-[0_20px_55px_rgba(197,160,89,0.10)] md:my-16 md:grid-cols-2 ${productIndex % 2 === 1 ? 'md:[&>div:first-child]:order-2' : ''}`}
+                    >
+                      <div className="flex min-h-[300px] items-center justify-center bg-brand-cream/60 p-7 md:min-h-[420px]">
+                        <ProductImage src={product.imageUrl} alt={product.name} className="h-full max-h-[390px] w-full object-contain transition-transform duration-700 hover:scale-105" />
+                      </div>
+                      <div className="flex flex-col justify-center p-7 md:p-10">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-brand-gold">
+                          Editor&apos;s Pick No. {productIndex + 1}
+                        </span>
+                        <h2 className="mt-4 font-serif text-3xl leading-tight md:text-4xl">{product.name}</h2>
+                        <p className="mt-5 text-sm leading-7 text-brand-black/60">
+                          A polished, practical {product.categoryName?.toLowerCase() || 'lifestyle'} find selected for this edit. Tap through for the retailer&apos;s current details, colors, and availability.
+                        </p>
+                        <a href={productHref(product)} target="_blank" rel="sponsored noopener noreferrer" className="btn-primary mt-7 inline-flex w-fit items-center gap-2 px-6 py-3 text-[10px]">
+                          Shop the Find <ArrowUpRight size={14} />
+                        </a>
+                      </div>
+                    </article>
+                  ))}
+              </div>
             ))}
           </div>
         </div>
-
-        {products.length > 0 && (
-          <section className="mx-auto mt-16 max-w-5xl border-t border-brand-blush pt-14 md:mt-20">
-            <div className="mx-auto max-w-3xl text-center">
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-gold">Shop the Edit</span>
-              <h2 className="mt-3 text-4xl font-serif tracking-tight md:text-5xl">The featured finds</h2>
-              <AffiliateDisclosureNotice className="mx-auto mt-6 max-w-2xl text-left" />
-            </div>
-
-            {featuredProduct && (
-              <article className="mt-10 grid overflow-hidden border border-brand-blush bg-white shadow-sm md:grid-cols-2">
-                <div className="aspect-[4/3] overflow-hidden bg-brand-cream md:aspect-auto">
-                  <ProductImage src={featuredProduct.imageUrl} alt={featuredProduct.name} className="h-full w-full object-cover" />
-                </div>
-                <div className="flex flex-col justify-center p-8 md:p-12">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-brand-gold">Editor&apos;s opening pick</span>
-                  <h3 className="mt-4 text-3xl font-serif leading-tight md:text-4xl">{featuredProduct.name}</h3>
-                  <p className="mt-5 text-sm leading-7 text-brand-black/60">
-                    A curated {featuredProduct.categoryName?.toLowerCase() || 'lifestyle'} find from this guide, selected to make the routine feel a little more intentional.
-                  </p>
-                  <a href={productHref(featuredProduct)} target="_blank" rel="sponsored noopener noreferrer" className="btn-primary mt-8 inline-flex w-fit items-center gap-2 px-6 py-3 text-[10px]">
-                    Shop the Find <ArrowUpRight size={14} />
-                  </a>
-                </div>
-              </article>
-            )}
-
-            <div className="mt-8 grid gap-6 md:grid-cols-2">
-              {products.filter((product) => product.id !== featuredProduct?.id).map((product, index) => (
-                <article key={product.id} className={`group overflow-hidden border border-brand-blush bg-white shadow-sm ${index % 3 === 2 ? 'md:col-span-2 md:grid md:grid-cols-[0.9fr_1.1fr]' : ''}`}>
-                  <div className={`overflow-hidden bg-brand-cream ${index % 3 === 2 ? 'aspect-[4/3] md:aspect-auto' : 'aspect-square'}`}>
-                    <ProductImage src={product.imageUrl} alt={product.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  </div>
-                  <div className="p-6 md:p-8">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-brand-gold">{product.categoryName || 'Curated find'}</span>
-                    <h3 className="mt-3 text-2xl font-serif leading-tight">{product.name}</h3>
-                    <p className="mt-4 text-sm leading-7 text-brand-black/60">A polished, practical addition to this edit—tap through for the retailer&apos;s current details.</p>
-                    <a href={productHref(product)} target="_blank" rel="sponsored noopener noreferrer" className="mt-6 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-black transition-colors hover:text-brand-gold">
-                      Shop the Find <ArrowUpRight size={13} />
-                    </a>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
 
         <section className="mx-auto mt-16 max-w-3xl border-y border-brand-blush bg-brand-cream/30 px-8 py-12 text-center md:mt-20">
           <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-gold">The Curated Cart</span>
