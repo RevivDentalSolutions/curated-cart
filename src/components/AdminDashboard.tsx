@@ -369,14 +369,14 @@ export default function AdminDashboard() {
             <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-gold">3. Blog Drafts</span><h2 className="mt-1 text-3xl font-serif">Drafts and publishing</h2>
             <div className="mt-5 space-y-3">{blogPosts.map((post) => <div key={post.id} className="rounded-sm border border-brand-blush p-4"><div className="flex items-start justify-between gap-4"><div><h3 className="font-serif text-lg">{post.title}</h3><p className="mt-1 text-xs text-brand-black/55">{post.isPublished ? 'Published' : 'Draft'} • {post.products?.map((p) => p.name).join(', ') || 'No connected products'}</p></div><div className="flex flex-wrap gap-2"><Link href={`/blog/${post.slug}${post.isPublished ? '' : '?preview=1'}`} target="_blank" rel="noopener noreferrer" className="btn-outline px-3 py-2 text-[10px]">Preview</Link><button onClick={() => editBlogPost(post as any)} className="btn-outline px-3 py-2 text-[10px]">Edit</button><button onClick={() => toggleBlogPost(post)} className="btn-primary px-3 py-2 text-[10px]">{post.isPublished ? 'Unpublish' : 'Publish'}</button><button onClick={() => deleteBlogPost(post.id)} className="btn-outline px-3 py-2 text-[10px]">Delete</button></div></div></div>)}</div>
 
-            {blogEditor.id && <form onSubmit={saveBlogPost} className="mt-8 grid gap-3 rounded-sm border border-brand-blush bg-brand-cream/20 p-4"><h3 className="font-serif text-xl">Edit blog post</h3><Input label="Title" required value={blogEditor.title} onChange={(value) => setBlogEditor({ ...blogEditor, title: value })} /><Input label="Slug" value={blogEditor.slug} onChange={(value) => setBlogEditor({ ...blogEditor, slug: value })} /><Textarea label="Excerpt" value={blogEditor.excerpt} onChange={(value) => setBlogEditor({ ...blogEditor, excerpt: value })} /><Textarea label="Body/content" value={blogEditor.content} onChange={(value) => setBlogEditor({ ...blogEditor, content: value })} /><label className="space-y-1 text-xs font-bold uppercase tracking-widest text-brand-black/60">Connected products<select multiple value={blogEditor.productIds} onChange={(e) => setBlogEditor({ ...blogEditor, productIds: Array.from(e.target.selectedOptions).map((option) => option.value) })} className="min-h-32 w-full border border-brand-blush bg-white p-3 text-sm font-normal normal-case tracking-normal">{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select></label><label className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest"><input type="checkbox" checked={blogEditor.isPublished} onChange={(e) => setBlogEditor({ ...blogEditor, isPublished: e.target.checked })} className="h-4 w-4 accent-brand-gold" /> Published</label><div className="grid gap-2 md:grid-cols-2"><button type="button" onClick={() => setBlogEditor(emptyManualPost)} className="btn-outline py-3">Cancel</button><button disabled={busyAction === 'save-blog-post'} className="btn-primary py-3">Save Blog Post</button></div></form>}
-            <form onSubmit={createManualPost} className="mt-8 grid gap-3"><h3 className="font-serif text-xl">Create manual post</h3><Input label="Title" required value={manualPost.title} onChange={(value) => setManualPost({ ...manualPost, title: value })} /><Input label="Slug" value={manualPost.slug} onChange={(value) => setManualPost({ ...manualPost, slug: value })} /><label className="space-y-1 text-xs font-bold uppercase tracking-widest text-brand-black/60">Category<select required value={manualPost.categoryId} onChange={(e) => setManualPost({ ...manualPost, categoryId: e.target.value })} className="w-full border border-brand-blush bg-white p-3 text-sm font-normal normal-case tracking-normal"><option value="">Choose category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><Textarea label="Post content" value={manualPost.content} onChange={(value) => setManualPost({ ...manualPost, content: value })} /><button disabled={busyAction === 'manual-post'} className="btn-primary py-3">Save Manual Blog Draft</button></form>
+            {blogEditor.id && <form onSubmit={saveBlogPost} className="mt-8 grid gap-3 rounded-sm border border-brand-blush bg-brand-cream/20 p-4"><h3 className="font-serif text-xl">Edit blog post</h3><Input label="Title" required value={blogEditor.title} onChange={(value) => setBlogEditor({ ...blogEditor, title: value })} /><Input label="Slug" value={blogEditor.slug} onChange={(value) => setBlogEditor({ ...blogEditor, slug: value })} /><HeaderImageField value={blogEditor.featuredImage} onChange={(value) => setBlogEditor({ ...blogEditor, featuredImage: value })} /><Textarea label="Excerpt" value={blogEditor.excerpt} onChange={(value) => setBlogEditor({ ...blogEditor, excerpt: value })} /><Textarea label="Body/content" value={blogEditor.content} onChange={(value) => setBlogEditor({ ...blogEditor, content: value })} /><label className="space-y-1 text-xs font-bold uppercase tracking-widest text-brand-black/60">Connected products<select multiple value={blogEditor.productIds} onChange={(e) => setBlogEditor({ ...blogEditor, productIds: Array.from(e.target.selectedOptions).map((option) => option.value) })} className="min-h-32 w-full border border-brand-blush bg-white p-3 text-sm font-normal normal-case tracking-normal">{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select></label><label className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest"><input type="checkbox" checked={blogEditor.isPublished} onChange={(e) => setBlogEditor({ ...blogEditor, isPublished: e.target.checked })} className="h-4 w-4 accent-brand-gold" /> Published</label><div className="grid gap-2 md:grid-cols-2"><button type="button" onClick={() => setBlogEditor(emptyManualPost)} className="btn-outline py-3">Cancel</button><button disabled={busyAction === 'save-blog-post'} className="btn-primary py-3">Save Blog Post</button></div></form>}
+            <form onSubmit={createManualPost} className="mt-8 grid gap-3"><h3 className="font-serif text-xl">Create manual post</h3><Input label="Title" required value={manualPost.title} onChange={(value) => setManualPost({ ...manualPost, title: value })} /><Input label="Slug" value={manualPost.slug} onChange={(value) => setManualPost({ ...manualPost, slug: value })} /><label className="space-y-1 text-xs font-bold uppercase tracking-widest text-brand-black/60">Category<select required value={manualPost.categoryId} onChange={(e) => setManualPost({ ...manualPost, categoryId: e.target.value })} className="w-full border border-brand-blush bg-white p-3 text-sm font-normal normal-case tracking-normal"><option value="">Choose category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><HeaderImageField value={manualPost.featuredImage} onChange={(value) => setManualPost({ ...manualPost, featuredImage: value })} /><Textarea label="Post content" value={manualPost.content} onChange={(value) => setManualPost({ ...manualPost, content: value })} /><button disabled={busyAction === 'manual-post'} className="btn-primary py-3">Save Manual Blog Draft</button></form>
           </div>
 
           <div className="rounded-sm border border-brand-blush bg-white p-6 shadow-sm">
             <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-gold">Roundup Builder</span><h2 className="mt-1 text-3xl font-serif">Collection blog post</h2>
             <div className="mt-4 rounded-sm bg-brand-cream/50 p-3 text-sm">Selected products: {selectedProducts.map((product) => product.name).join(', ') || 'None yet'}</div>
-            <form onSubmit={createCollectionPost} className="mt-5 grid gap-3"><Input label="Roundup title" required value={collectionPost.title} onChange={(value) => setCollectionPost({ ...collectionPost, title: value })} /><label className="space-y-1 text-xs font-bold uppercase tracking-widest text-brand-black/60">Category<select required value={collectionPost.categoryId} onChange={(e) => setCollectionPost({ ...collectionPost, categoryId: e.target.value })} className="w-full border border-brand-blush bg-white p-3 text-sm font-normal normal-case tracking-normal"><option value="">Choose category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><Textarea label="Intro" value={collectionPost.intro} onChange={(value) => setCollectionPost({ ...collectionPost, intro: value })} /><Textarea label="Product sections" value={collectionPost.productSections} onChange={(value) => setCollectionPost({ ...collectionPost, productSections: value })} /><Textarea label="Conclusion" value={collectionPost.conclusion} onChange={(value) => setCollectionPost({ ...collectionPost, conclusion: value })} /><div className="grid gap-2 md:grid-cols-2"><button type="button" onClick={generateCollectionDraft} disabled={busyAction === 'collection-draft'} className="btn-outline py-3">Generate AI Draft</button><button disabled={busyAction === 'collection-post' || selectedProductIds.length < 2} className="btn-primary py-3 disabled:opacity-50">Save Roundup Draft</button></div></form>
+            <form onSubmit={createCollectionPost} className="mt-5 grid gap-3"><Input label="Roundup title" required value={collectionPost.title} onChange={(value) => setCollectionPost({ ...collectionPost, title: value })} /><label className="space-y-1 text-xs font-bold uppercase tracking-widest text-brand-black/60">Category<select required value={collectionPost.categoryId} onChange={(e) => setCollectionPost({ ...collectionPost, categoryId: e.target.value })} className="w-full border border-brand-blush bg-white p-3 text-sm font-normal normal-case tracking-normal"><option value="">Choose category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><HeaderImageField value={collectionPost.featuredImage} onChange={(value) => setCollectionPost({ ...collectionPost, featuredImage: value })} /><Textarea label="Intro" value={collectionPost.intro} onChange={(value) => setCollectionPost({ ...collectionPost, intro: value })} /><Textarea label="Product sections" value={collectionPost.productSections} onChange={(value) => setCollectionPost({ ...collectionPost, productSections: value })} /><Textarea label="Conclusion" value={collectionPost.conclusion} onChange={(value) => setCollectionPost({ ...collectionPost, conclusion: value })} /><div className="grid gap-2 md:grid-cols-2"><button type="button" onClick={generateCollectionDraft} disabled={busyAction === 'collection-draft'} className="btn-outline py-3">Generate AI Draft</button><button disabled={busyAction === 'collection-post' || selectedProductIds.length < 2} className="btn-primary py-3 disabled:opacity-50">Save Roundup Draft</button></div></form>
           </div>
         </section>
 
@@ -397,6 +397,83 @@ export default function AdminDashboard() {
 
 function Metric({ label, value }: { label: string; value: number }) { return <div className="rounded-sm border border-brand-blush bg-white p-5 shadow-sm"><p className="text-[10px] font-bold uppercase tracking-widest text-brand-black/45">{label}</p><p className="mt-1 text-3xl font-serif">{value}</p></div>; }
 function Badge({ children }: { children: React.ReactNode }) { return <span className="rounded-full bg-brand-cream px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-black/55">{children}</span>; }
+
+function HeaderImageField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState('');
+
+  async function chooseImage(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Choose a JPG, PNG, or WebP image.');
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      setError('Choose an image smaller than 12 MB.');
+      return;
+    }
+
+    setProcessing(true);
+    setError('');
+    try {
+      const source = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Could not read that image.'));
+        reader.readAsDataURL(file);
+      });
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const nextImage = new Image();
+        nextImage.onload = () => resolve(nextImage);
+        nextImage.onerror = () => reject(new Error('Could not open that image.'));
+        nextImage.src = source;
+      });
+      const scale = Math.min(1, 1800 / image.width, 1100 / image.height);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Could not prepare that image.');
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const compressed = canvas.toDataURL('image/jpeg', 0.84);
+      if (compressed.length > 2_500_000) {
+        throw new Error('That image is still too large after resizing. Try a smaller file.');
+      }
+      onChange(compressed);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : 'Could not prepare that image.');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-sm border border-brand-blush bg-white p-4">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-black/60">Custom blog header image</p>
+        <p className="mt-1 text-xs font-normal normal-case tracking-normal text-brand-black/50">Upload a wide image for this post. Recommended shape: 16:9 or 3:2.</p>
+      </div>
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={(event) => chooseImage(event.target.files?.[0])}
+        className="block w-full text-xs font-normal normal-case tracking-normal file:mr-3 file:border file:border-brand-black file:bg-white file:px-4 file:py-2 file:text-[10px] file:font-bold file:uppercase file:tracking-widest"
+      />
+      <Input label="Or paste an image URL" value={value.startsWith('data:') ? '' : value} onChange={onChange} />
+      {processing && <p className="flex items-center gap-2 text-xs text-brand-gold"><Loader2 size={14} className="animate-spin" /> Preparing image…</p>}
+      {error && <p className="text-xs text-red-700">{error}</p>}
+      {value && (
+        <div>
+          <img src={value} alt="Header preview" className="aspect-[16/7] w-full border border-brand-blush bg-brand-cream object-cover" />
+          <button type="button" onClick={() => onChange('')} className="btn-outline mt-3 px-4 py-2 text-[10px]">Remove Header Image</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Input({ label, value, onChange, type = 'text', required = false }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean }) { return <label className="space-y-1 text-xs font-bold uppercase tracking-widest text-brand-black/60">{label}<input required={required} type={type} value={value} onChange={(e) => onChange(e.target.value)} className="w-full border border-brand-blush p-3 text-sm font-normal normal-case tracking-normal text-brand-black" /></label>; }
 function Textarea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="space-y-1 text-xs font-bold uppercase tracking-widest text-brand-black/60 lg:col-span-1">{label}<textarea value={value} onChange={(e) => onChange(e.target.value)} rows={4} className="w-full border border-brand-blush p-3 text-sm font-normal normal-case tracking-normal text-brand-black" /></label>; }
 function QueueColumn({ title, items }: { title: string; items: string[] }) { return <div className="rounded-sm border border-brand-blush bg-brand-cream/30 p-4"><h3 className="font-serif text-lg">{title}</h3><div className="mt-3 space-y-2">{items.length ? items.slice(0, 8).map((item) => <p key={item} className="rounded-sm bg-white p-2 text-xs">{item}</p>) : <p className="text-xs italic text-brand-black/40">Nothing here.</p>}</div></div>; }

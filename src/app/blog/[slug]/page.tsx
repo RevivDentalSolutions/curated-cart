@@ -126,6 +126,7 @@ export default async function BlogPostPage({
 
   const storyParagraphs = paragraphs.length > 0 ? paragraphs : [post.excerpt || post.metaDescription || ''];
   const heroProducts = products.slice(0, 3);
+  const hasCustomHeader = Boolean(post.featuredImage) && !products.some((product) => product.imageUrl === post.featuredImage);
 
   function insertAfterParagraph(productIndex: number) {
     if (storyParagraphs.length <= 1) return 0;
@@ -151,7 +152,11 @@ export default async function BlogPostPage({
       />
 
       <div className="container mx-auto max-w-6xl px-4 pt-10 md:pt-14">
-        {heroProducts.length > 1 ? (
+        {hasCustomHeader ? (
+          <div className="mx-auto max-w-5xl overflow-hidden bg-brand-cream shadow-sm">
+            <ProductImage src={post.featuredImage} alt={post.title} className="aspect-[16/7] w-full object-cover" />
+          </div>
+        ) : heroProducts.length > 1 ? (
           <div className="mx-auto grid max-w-5xl gap-3 overflow-hidden bg-brand-cream p-3 shadow-sm md:grid-cols-[1.35fr_0.65fr]">
             <div className="flex min-h-[320px] items-center justify-center bg-white p-6 md:min-h-[520px]">
               <ProductImage src={heroProducts[0].imageUrl} alt={heroProducts[0].name} className="h-full max-h-[480px] w-full object-contain" />
