@@ -11,6 +11,7 @@ import { getCategoryImage } from '@/lib/categories';
 import { withAmazonAssociatesTag } from '@/lib/affiliate';
 import { fallbackLatestPosts } from '@/lib/homepage-fallback';
 import { isPublicBlogPost } from '@/lib/blog-visibility';
+import { isAdminAuthenticated } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,8 +36,15 @@ function productHref(product: GuideProduct) {
   return withAmazonAssociatesTag(product.affiliateLink || product.amazonLink);
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ preview?: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
+  const isDraftPreview = (await searchParams)?.preview === '1' && await isAdminAuthenticated();
   const post = process.env.DATABASE_URL ? await prisma.blogPost.findUnique({ where: { slug } }) : fallbackLatestPosts.find((item) => item.slug === slug);
   if (!post) return {};
 
@@ -47,6 +55,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
+    robots: isDraftPreview ? { index: false, follow: false } : undefined,
     alternates: { canonical: `/blog/${post.slug}` },
     openGraph: {
       title,
@@ -66,15 +75,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function BlogPostPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ preview?: string }>;
+}) {
   await connection();
   const { slug } = await params;
+  const isDraftPreview = (await searchParams)?.preview === '1' && await isAdminAuthenticated();
   const post = process.env.DATABASE_URL ? await prisma.blogPost.findUnique({
     where: { slug },
     include: { category: true },
   }) : fallbackLatestPosts.find((item) => item.slug === slug);
 
-  if (!post || !isPublicBlogPost(post)) notFound();
+  if (!post || (!isPublicBlogPost(post) && !isDraftPreview)) notFound();
 
   // The production catalog predates Product.description. This intentionally
   // selects only the stable fields required for the editorial product modules.
@@ -110,6 +126,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <article className="pb-24 text-brand-black">
+      {isDraftPreview && !isPublicBlogPost(post) && (
+        <div className="border-b border-brand-gold/30 bg-brand-cream px-4 py-3 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-brand-black">
+          Draft preview — this post is not public yet
+        </div>
+      )}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       <BlogArticleHeader
         category={post.category.name}
