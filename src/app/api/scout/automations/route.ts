@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { getScoutAutomationConfig, runScoutAutomation, updateScoutAutomationConfig } from '@/lib/scoutAutomation';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdminRequest(req)) return unauthorizedAdminResponse();
+
   try {
     const config = await getScoutAutomationConfig();
     return NextResponse.json({ success: true, data: config });
@@ -12,6 +15,8 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
+  if (!isAdminRequest(req)) return unauthorizedAdminResponse();
+
   try {
     const body = await req.json();
     const config = await updateScoutAutomationConfig(body);
@@ -22,7 +27,9 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  if (!isAdminRequest(req)) return unauthorizedAdminResponse();
+
   try {
     const result = await runScoutAutomation({ force: true });
     return NextResponse.json({ success: true, data: result });
