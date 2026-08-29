@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { connection } from 'next/server';
 import ProductImage from '@/components/ProductImage';
 import AffiliateDisclosureNotice from '@/components/AffiliateDisclosureNotice';
+import NewsletterSignup from '@/components/NewsletterSignup';
 import { prisma } from '@/lib/prisma';
 import { buildCategoryCards, getCategoryImage } from '@/lib/categories';
 import { withAmazonAssociatesTag } from '@/lib/affiliate';
@@ -127,11 +128,8 @@ export default async function Home() {
       <section className="bg-brand-black py-20 text-center">
         <div className="container mx-auto max-w-2xl px-4">
           <h2 className="text-brand-cream text-4xl font-serif">Join the Weekly Cart Drop</h2>
-          <p className="mt-4 text-sm text-brand-gold/80">Email signup placeholder for future newsletter integration.</p>
-          <form className="mt-8 flex flex-col gap-4 md:flex-row">
-            <input type="email" placeholder="Your email address" className="flex-grow bg-white px-6 py-4 text-sm text-brand-black" />
-            <button className="btn-primary py-4">Join the List</button>
-          </form>
+          <p className="mt-4 text-sm text-brand-gold/80">Pretty finds, practical buys, and fresh shopping edits—sent weekly.</p>
+          <NewsletterSignup source="homepage" layout="row" />
         </div>
       </section>
     </div>

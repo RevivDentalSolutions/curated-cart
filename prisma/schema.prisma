@@ -158,3 +158,12 @@ model PinterestPin {
   @@index([blogPostId])
   @@index([boardId])
 }
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String   @default("website")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
