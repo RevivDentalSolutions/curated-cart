@@ -42,3 +42,106 @@ h1, h2, h3, h4, h5, h6 {
 .nav-link {
   @apply text-brand-black hover:text-brand-gold transition-colors text-sm uppercase tracking-wider;
 }
+
+.editorial-article {
+  background: #fcfaf7;
+}
+
+.editorial-intro,
+.editorial-body {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.12rem, 2vw, 1.35rem);
+  line-height: 1.85;
+  color: rgb(26 26 26 / 78%);
+}
+
+.editorial-intro p + p,
+.editorial-body p + p {
+  margin-top: 1.5rem;
+}
+
+.editorial-intro p:first-child::first-letter {
+  float: left;
+  margin: .05em .12em 0 0;
+  color: #c5a059;
+  font-size: 4.6rem;
+  line-height: .82;
+}
+
+.editorial-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, .82fr);
+  width: min(820px, calc(100% - 2rem));
+  min-height: 260px;
+  margin: 2.5rem auto;
+  overflow: hidden;
+  border: 1px solid rgb(214 204 194 / 45%);
+  background: #fff;
+}
+
+.editorial-feature-reverse .editorial-feature-image { order: 2; }
+.editorial-feature-reverse .editorial-feature-copy { order: 1; }
+
+.editorial-feature-image {
+  height: 270px;
+  min-height: 0;
+  overflow: hidden;
+  background: #f7f2ea;
+}
+
+.editorial-feature-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+.editorial-feature-copy > span {
+  color: #c5a059;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+}
+
+.editorial-feature-copy h2 {
+  margin-top: 1rem;
+  font-size: clamp(2.2rem, 4vw, 4.4rem);
+  line-height: .98;
+  letter-spacing: -.04em;
+}
+
+.editorial-feature-copy h3 {
+  margin-top: 1.5rem;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.editorial-feature-copy p {
+  margin-top: 1.25rem;
+  color: rgb(26 26 26 / 68%);
+  font-size: .95rem;
+  line-height: 1.75;
+}
+
+.editorial-feature-copy a {
+  margin-top: 1.75rem;
+  width: fit-content;
+  border-bottom: 1px solid #c5a059;
+  padding-bottom: .3rem;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 767px) {
+  .editorial-feature { grid-template-columns: 1fr; width: calc(100% - 2rem); min-height: 0; margin: 1.5rem auto; }
+  .editorial-feature-reverse .editorial-feature-image,
+  .editorial-feature-reverse .editorial-feature-copy { order: initial; }
+  .editorial-feature-image { height: auto; min-height: 0; aspect-ratio: 4 / 3; }
+  .editorial-feature-copy { padding: 2.5rem 1.25rem 3rem; }
+}

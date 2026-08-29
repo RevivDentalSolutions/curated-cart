@@ -42,6 +42,7 @@ type Product = {
 };
 
 type Pin = { id: string; status: string; productId?: string | null; product?: { id: string; name: string } | null };
+type NewsletterSubscriber = { id: string; email: string; source: string; createdAt: string };
 
 const emptyProduct = {
   id: '',
@@ -94,6 +95,7 @@ export default function AdminDashboard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [pins, setPins] = useState<Pin[]>([]);
+  const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
   const [form, setForm] = useState(emptyProduct);
   const [manualPost, setManualPost] = useState(emptyManualPost);
   const [blogEditor, setBlogEditor] = useState(emptyManualPost);
@@ -107,19 +109,21 @@ export default function AdminDashboard() {
 
   async function loadData() {
     setLoading(true);
-    const [productRes, categoryRes, blogRes, pinRes] = await Promise.all([
+    const [productRes, categoryRes, blogRes, pinRes, subscriberRes] = await Promise.all([
       fetch('/api/products'),
       fetch('/api/categories-list'),
       fetch('/api/blog-posts'),
       fetch('/api/pinterest/pins'),
+      fetch('/api/newsletter'),
     ]);
-    const [productJson, categoryJson, blogJson, pinJson] = await Promise.all([
-      productRes.json(), categoryRes.json(), blogRes.json(), pinRes.json(),
+    const [productJson, categoryJson, blogJson, pinJson, subscriberJson] = await Promise.all([
+      productRes.json(), categoryRes.json(), blogRes.json(), pinRes.json(), subscriberRes.json(),
     ]);
     if (productJson.success) setProducts(productJson.data);
     if (categoryJson.success) setCategories(categoryJson.data);
     if (blogJson.success) setBlogPosts(blogJson.data);
     if (pinJson.success) setPins(pinJson.data);
+    if (subscriberJson.success) setSubscribers(subscriberJson.data);
     setLoading(false);
   }
 
@@ -303,10 +307,11 @@ export default function AdminDashboard() {
           <p className="mt-4 max-w-3xl text-sm leading-7 text-brand-black/65">Manage affiliate-safe products, AI content, blog drafts, Pinterest pins, and compliance checks without bringing back fake prices, fake reviews, or hardcoded Amazon tags.</p>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-5">
           <Metric label="Products" value={products.length} />
           <Metric label="Published" value={products.filter((p) => p.published).length} />
           <Metric label="Blog drafts" value={blogPosts.filter((p) => !p.isPublished).length} />
+          <Metric label="Subscribers" value={subscribers.length} />
           <Metric label="Compliance flags" value={complianceIssues.length + (amazonTagMissing ? 1 : 0)} />
         </section>
 
@@ -394,7 +399,22 @@ export default function AdminDashboard() {
         </section>
 
         <section className="rounded-sm border border-brand-blush bg-white p-6 shadow-sm">
-          <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-gold">5. Compliance Checklist</span><h2 className="mt-1 text-3xl font-serif">Amazon Associates readiness</h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div><span className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-gold">5. Newsletter</span><h2 className="mt-1 text-3xl font-serif">Cart Drop subscribers</h2></div>
+            <p className="text-sm text-brand-black/55">{subscribers.length} {subscribers.length === 1 ? 'subscriber' : 'subscribers'}</p>
+          </div>
+          <div className="mt-5 overflow-x-auto">
+            {subscribers.length ? (
+              <table className="w-full min-w-[560px] border-collapse text-left text-sm">
+                <thead><tr className="border-b border-brand-blush text-[10px] font-bold uppercase tracking-widest text-brand-black/45"><th className="px-3 py-3">Email</th><th className="px-3 py-3">Signup location</th><th className="px-3 py-3">Date joined</th></tr></thead>
+                <tbody>{subscribers.map((subscriber) => <tr key={subscriber.id} className="border-b border-brand-blush/70"><td className="px-3 py-3 font-medium">{subscriber.email}</td><td className="px-3 py-3 capitalize text-brand-black/60">{subscriber.source}</td><td className="px-3 py-3 text-brand-black/60">{new Date(subscriber.createdAt).toLocaleDateString()}</td></tr>)}</tbody>
+              </table>
+            ) : <p className="rounded-sm bg-brand-cream/40 p-4 text-sm italic text-brand-black/45">New website signups will appear here.</p>}
+          </div>
+        </section>
+
+        <section className="rounded-sm border border-brand-blush bg-white p-6 shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-gold">6. Compliance Checklist</span><h2 className="mt-1 text-3xl font-serif">Amazon Associates readiness</h2>
           <div className="mt-5 space-y-3"><ComplianceItem ok={!amazonTagMissing} text={amazonTagMissing ? 'Missing Amazon tracking tag environment variable.' : 'Amazon tracking tag environment variable is configured.'} /><ComplianceItem ok text="Affiliate disclosure pages and notices remain in the site shell/public pages." /><ComplianceItem ok text="Dashboard does not expose manual fake price, rating, or review fields." />{complianceIssues.map(({ product, issue }) => <ComplianceItem key={`${product.id}-${issue}`} ok={false} text={`${product.name}: ${issue}`} />)}{complianceIssues.length === 0 && <ComplianceItem ok text="All products have the required category, image, URL, and description fields." />}</div>
         </section>
       </div>

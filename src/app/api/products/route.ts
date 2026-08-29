@@ -149,7 +149,14 @@ export async function DELETE(req: NextRequest) {
     const id = req.nextUrl.searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Product id is required.' }, { status: 400 });
 
-    const product = await prisma.product.delete({ where: { id }, select: { categoryId: true } });
+    // Product imports can have locally generated content and pin records. Remove
+    // those dependent records first so an unwanted import is not left undeletable
+    // by a foreign-key constraint.
+    const [, , product] = await prisma.$transaction([
+      prisma.contentBundle.deleteMany({ where: { productId: id } }),
+      prisma.pinterestPin.deleteMany({ where: { productId: id } }),
+      prisma.product.delete({ where: { id }, select: { categoryId: true } }),
+    ]);
     revalidateProductPages(product.categoryId);
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

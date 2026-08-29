@@ -34,6 +34,23 @@ if (process.env.PRISMA_SKIP_MIGRATE_DEPLOY === 'true') {
   process.exit(0);
 }
 
+const migrateEnv = {
+  ...process.env,
+  DATABASE_URL: process.env.DIRECT_URL || process.env.DATABASE_URL,
+};
+
+// Newsletter storage is an isolated, idempotent table addition. Apply it even
+// while a legacy production database is waiting for its full Prisma baseline.
+run('npx', [
+  'prisma',
+  'db',
+  'execute',
+  '--file',
+  'prisma/migrations/20260829000000_add_newsletter_subscribers/migration.sql',
+  '--schema',
+  'prisma/schema.prisma',
+], { env: migrateEnv });
+
 if (process.env.PRISMA_PRODUCTION_BASELINED !== 'true') {
   // The production database already serves the live site. Do not block a
   // no-schema-change recovery release merely because its historic migration
@@ -43,11 +60,6 @@ if (process.env.PRISMA_PRODUCTION_BASELINED !== 'true') {
   run('npx', ['next', 'build']);
   process.exit(0);
 }
-
-const migrateEnv = {
-  ...process.env,
-  DATABASE_URL: process.env.DIRECT_URL || process.env.DATABASE_URL,
-};
 
 run('npx', ['prisma', 'migrate', 'deploy'], { env: migrateEnv });
 run('npx', ['next', 'build']);

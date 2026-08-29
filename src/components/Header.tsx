@@ -1,5 +1,8 @@
 import Link from 'next/link';
-import { Search, Menu } from 'lucide-react';
+import { Search, Menu, ShoppingBag } from 'lucide-react';
+
+const AMAZON_PROFILE_URL =
+  'https://www.amazon.com/gp/profile/amzn1.account.AELCMFL6SMBCPIP3MYY54OUSFB2Q?ref=css&ccs_id=ac7fe8bd-8247-4534-96bd-1a09b3706331';
 
 export default function Header() {
   return (
@@ -21,9 +24,29 @@ export default function Header() {
             <Link href="/top-picks" className="nav-link">Top Picks</Link>
             <Link href="/categories" className="nav-link">Categories</Link>
             <Link href="/affiliate-disclosure" className="nav-link">Disclosure</Link>
+            <a
+              href={AMAZON_PROFILE_URL}
+              target="_blank"
+              rel="sponsored noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-brand-gold px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-brand-black transition-colors hover:bg-brand-gold hover:text-white"
+              aria-label="Shop all Curated Cart products on Amazon (opens in a new tab)"
+            >
+              <ShoppingBag size={15} aria-hidden="true" />
+              Shop All Amazon Finds
+            </a>
           </nav>
 
           <div className="flex items-center space-x-4">
+            <a
+              href={AMAZON_PROFILE_URL}
+              target="_blank"
+              rel="sponsored noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-brand-gold px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-black transition-colors hover:bg-brand-gold hover:text-white md:hidden"
+              aria-label="Shop all Curated Cart products on Amazon (opens in a new tab)"
+            >
+              <ShoppingBag size={14} aria-hidden="true" />
+              Amazon Shop
+            </a>
             <button className="text-brand-black hover:text-brand-gold transition-colors">
               <Search size={20} />
             </button>
