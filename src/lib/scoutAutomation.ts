@@ -42,8 +42,23 @@ export async function updateScoutAutomationConfig(input: Partial<AutomationConfi
   });
 }
 
-export async function runScoutAutomation(options: { force?: boolean } = {}) {
-  const config = await getScoutAutomationConfig();
+export async function runScoutAutomation(options: { force?: boolean; config?: unknown } = {}) {
+  const savedConfig = await getScoutAutomationConfig();
+  const config = options.config && typeof options.config === 'object'
+    ? { ...savedConfig, ...sanitizeAutomationConfig(options.config as Partial<AutomationConfigInput>) }
+    : savedConfig;
+
+  console.info('[Scout Automation] Starting run', {
+    force: Boolean(options.force),
+    autoImportEnabled: config.autoImportEnabled,
+    sourceCounts: {
+      rssFeeds: config.rssFeeds.length,
+      amazonMoversUrls: config.amazonMoversUrls.length,
+      tiktokKeywords: config.tiktokKeywords.length,
+      pinterestKeywords: config.pinterestKeywords.length,
+      productUrls: config.productUrls.length,
+    },
+  });
 
   if (!options.force && !config.autoImportEnabled) {
     return {
@@ -64,8 +79,12 @@ export async function runScoutAutomation(options: { force?: boolean } = {}) {
     productUrls: config.productUrls,
   });
 
+  console.info('[Scout Automation] Discovery completed', { discovered: discovered.length });
+
   const normalized = discovered.map((lead) => normalizeLead(lead));
   const deduped = await filterExistingLeads(normalized);
+
+  console.info('[Scout Automation] Deduplication completed', { normalized: normalized.length, deduped: normalized.length - deduped.length, createCandidates: deduped.length });
 
   const created = await prisma.$transaction(
     deduped.map((lead) => prisma.productLead.create({ data: lead }))
@@ -86,13 +105,17 @@ export async function runScoutAutomation(options: { force?: boolean } = {}) {
     data: { lastRunAt: new Date() },
   });
 
-  return {
+  const result = {
     skipped: false,
     discovered: discovered.length,
     created: created.length,
     deduped: normalized.length - deduped.length,
     approved,
   };
+
+  console.info('[Scout Automation] Run completed', result);
+
+  return result;
 }
 
 async function discoverLeads(config: Pick<AutomationConfigInput, 'rssFeeds' | 'amazonMoversUrls' | 'tiktokKeywords' | 'pinterestKeywords' | 'productUrls'>) {
@@ -151,32 +174,37 @@ async function filterExistingLeads(leads: ReturnType<typeof normalizeLead>[]) {
 }
 
 async function fetchRssLeads(feedUrl: string): Promise<DiscoveredLead[]> {
-  const response = await fetch(feedUrl, {
-    headers: { 'User-Agent': 'The Curated Cart Product Scout/1.0' },
-    signal: AbortSignal.timeout(8000),
-  });
+  try {
+    const response = await fetch(feedUrl, {
+      headers: { 'User-Agent': 'The Curated Cart Product Scout/1.0' },
+      signal: AbortSignal.timeout(8000),
+    });
 
-  if (!response.ok) return [];
+    if (!response.ok) return [];
 
-  const xml = await response.text();
-  const items = Array.from(xml.matchAll(/<item[\s\S]*?<\/item>|<entry[\s\S]*?<\/entry>/gi)).slice(0, 20);
+    const xml = await response.text();
+    const items = Array.from(xml.matchAll(/<item[\s\S]*?<\/item>|<entry[\s\S]*?<\/entry>/gi)).slice(0, 20);
 
-  return items.map((match) => {
-    const item = match[0];
-    const title = cleanXml(extractXmlValue(item, 'title')) || 'RSS trend item';
-    const link = cleanXml(extractXmlValue(item, 'link')) || extractLinkHref(item);
-    const imageUrl = extractRssImage(item);
+    return items.map((match) => {
+      const item = match[0];
+      const title = cleanXml(extractXmlValue(item, 'title')) || 'RSS trend item';
+      const link = cleanXml(extractXmlValue(item, 'link')) || extractLinkHref(item);
+      const imageUrl = extractRssImage(item);
 
-    return {
-      title: normalizeTitle(title),
-      source: 'RSS',
-      sourceUrl: link,
-      imageUrl,
-      trendKeyword: 'RSS trend feed',
-      reasonItMightSell: 'Imported from an allowed RSS feed for admin review.',
-      sourceBadge: 'RSS',
-    };
-  });
+      return {
+        title: normalizeTitle(title),
+        source: 'RSS',
+        sourceUrl: link,
+        imageUrl,
+        trendKeyword: 'RSS trend feed',
+        reasonItMightSell: 'Imported from an allowed RSS feed for admin review.',
+        sourceBadge: 'RSS',
+      };
+    });
+  } catch (error) {
+    console.warn('[Scout Automation] RSS feed discovery failed', { feedHost: safeHost(feedUrl), message: error instanceof Error ? error.message : 'Unknown RSS error' });
+    return [];
+  }
 }
 
 function createAmazonMoversLead(url: string): DiscoveredLead {
@@ -270,6 +298,14 @@ function isUrl(value: string) {
 
 function normalizeTitle(title: string) {
   return title.replace(/\s+/g, ' ').replace(/[•|–—-]\s*Amazon.*$/i, '').trim();
+}
+
+function safeHost(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return 'invalid-url';
+  }
 }
 
 function titleFromUrl(url: string) {
